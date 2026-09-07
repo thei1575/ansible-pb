@@ -35,6 +35,13 @@ Issues = "https://github.com/thei1575/ansible-pb/issues"
 [project.scripts]
 pb = "pb.app:main"
 
+# `uv sync` and `uv run` install this by default; nothing here is needed to run pb.
+[dependency-groups]
+dev = [
+  "pytest>=8",
+  "ruff>=0.14",
+]
+
 [tool.hatch.version]
 path = "src/pb/__init__.py"
 
@@ -52,3 +59,9 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 # The nesting in `compose()` is the widget tree. Collapsing a `with TabPane(...)`
 # into its child container would save a line and lose the shape.
 "src/pb/app.py" = ["SIM117"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+filterwarnings = ["error"]
