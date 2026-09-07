@@ -11,7 +11,7 @@ before it runs.
 ## Install
 
 ```bash
-uv tool install ansible-pb
+uv tool install git+https://github.com/thei1575/ansible-pb
 ```
 
 or, from a clone:
@@ -20,8 +20,9 @@ or, from a clone:
 uv tool install .
 ```
 
-`pipx install ansible-pb` works too. pb needs Python 3.11+ and a POSIX terminal
-(macOS or Linux) — it allocates a pty so Ansible keeps its colour.
+`pipx install git+https://github.com/thei1575/ansible-pb` works too. Not on
+PyPI yet. pb needs Python 3.11+ and a POSIX terminal (macOS or Linux) — it
+allocates a pty so Ansible keeps its colour.
 
 Ansible itself is deliberately *not* a dependency: pb drives whatever `ansible`
 is already on your `PATH`, so it never interferes with how you install it.
