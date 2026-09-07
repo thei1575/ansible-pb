@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from textual.widgets import Button
+from textual.widgets import Button, DataTable, Static
 
 from pb import app, meta, update
 from pb.widgets import UpdatePrompt, Viewer
@@ -35,6 +35,18 @@ async def settle(pilot: Any, ready: Callable[[], bool], tries: int = 200) -> boo
             return True
         await pilot.pause(0.02)
     return ready()
+
+
+async def quiet(pilot: Any, instance: app.PbApp) -> None:
+    """Let the startup workers finish, and their events drain, before leaving.
+
+    `reload()` fills the tables from a thread, and every row it adds queues a
+    `RowHighlighted`. Tearing the app down with those still in the queue
+    dispatches them against a screen that is already going away.
+    """
+    await instance.workers.wait_for_complete()
+    await pilot.pause()
+    await pilot.pause()
 
 
 async def press(pilot: Any, screen: Any, button: str) -> None:
@@ -59,6 +71,7 @@ def test_a_new_version_is_offered_when_the_app_opens(repo_root: Path, offered: N
         instance = app.PbApp(repo_root)
         async with instance.run_test() as pilot:
             assert await settle(pilot, lambda: isinstance(instance.screen, UpdatePrompt))
+            await quiet(pilot, instance)
             prompt = instance.screen
             assert isinstance(prompt, UpdatePrompt)
             # The version you have and the one on offer, then the changelog.
@@ -78,9 +91,11 @@ def test_skipping_remembers_the_version_and_closes(repo_root: Path, offered: Non
         instance = app.PbApp(repo_root)
         async with instance.run_test() as pilot:
             assert await settle(pilot, lambda: isinstance(instance.screen, UpdatePrompt))
+            await quiet(pilot, instance)
             await press(pilot, instance.screen, "#skip")
             await pilot.pause()
             assert not isinstance(instance.screen, UpdatePrompt)
+            await quiet(pilot, instance)
         assert update.load_state()["skipped"] == "0.2.0"
 
     drive(scenario)
@@ -91,6 +106,7 @@ def test_escape_closes_without_remembering_anything(repo_root: Path, offered: No
         instance = app.PbApp(repo_root)
         async with instance.run_test() as pilot:
             assert await settle(pilot, lambda: isinstance(instance.screen, UpdatePrompt))
+            await quiet(pilot, instance)
             await pilot.press("escape")
             await pilot.pause()
             assert not isinstance(instance.screen, UpdatePrompt)
@@ -118,6 +134,7 @@ def test_accepting_runs_exactly_the_command_it_showed(
         instance = app.PbApp(repo_root)
         async with instance.run_test() as pilot:
             assert await settle(pilot, lambda: isinstance(instance.screen, UpdatePrompt))
+            await quiet(pilot, instance)
             shown = instance.screen._command
             await press(pilot, instance.screen, "#update")
             assert await settle(pilot, lambda: bool(ran)), "the update never ran"
@@ -141,6 +158,7 @@ def test_a_failed_install_shows_the_output_instead_of_claiming_success(
         instance = app.PbApp(repo_root)
         async with instance.run_test() as pilot:
             assert await settle(pilot, lambda: isinstance(instance.screen, UpdatePrompt))
+            await quiet(pilot, instance)
             await press(pilot, instance.screen, "#update")
             assert await settle(pilot, lambda: isinstance(instance.screen, Viewer))
             viewer = instance.screen
@@ -162,7 +180,7 @@ def test_no_update_check_never_asks(
     async def scenario() -> None:
         instance = app.PbApp(repo_root, check_updates=False)
         async with instance.run_test() as pilot:
-            await pilot.pause()
+            await quiet(pilot, instance)
             await pilot.pause(0.2)
             assert not isinstance(instance.screen, UpdatePrompt)
 
@@ -180,6 +198,7 @@ def test_a_clone_is_told_to_git_pull_rather_than_offered_an_install(
         instance = app.PbApp(repo_root)
         async with instance.run_test() as pilot:
             assert await settle(pilot, lambda: isinstance(instance.screen, UpdatePrompt))
+            await quiet(pilot, instance)
             prompt = instance.screen
             assert isinstance(prompt, UpdatePrompt)
             assert await settle(pilot, lambda: bool(prompt.query("#update")))
@@ -191,5 +210,23 @@ def test_a_clone_is_told_to_git_pull_rather_than_offered_an_install(
             await pilot.pause()
             assert not isinstance(instance.screen, UpdatePrompt)
         assert update.load_state()["skipped"] == "0.2.0"
+
+    drive(scenario)
+
+
+def test_a_row_event_that_outlives_its_pane_is_ignored(repo_root: Path) -> None:
+    """Filling a table queues one `RowHighlighted` per row, and they are
+    dispatched afterwards — including while the app is being torn down, when
+    the detail pane they would draw into has gone. That is not a crash."""
+
+    async def scenario() -> None:
+        instance = app.PbApp(repo_root, check_updates=False)
+        async with instance.run_test() as pilot:
+            await quiet(pilot, instance)
+            table = instance.query_one("#playbooks", DataTable)
+            key = next(iter(table.rows))
+            await instance.query_one("#playbook-detail", Static).remove()
+            instance._selection_moved(DataTable.RowHighlighted(table, 0, key))
+            await quiet(pilot, instance)
 
     drive(scenario)

@@ -44,7 +44,7 @@ Before then, minor versions may break things.
   setting intact.
 * Doctor names the inventory pb settled on, where that came from, and whether
   it exists.
-* A test suite (`tests/`, 220 tests) covering inventory resolution, repo
+* A test suite (`tests/`, 221 tests) covering inventory resolution, repo
   discovery, playbook, role and vault parsing, recap parsing, the pty streamer,
   secret redaction, the SSH probe's accessors, the CLI and the run history —
   the update check and the prompt it puts on screen — all against a fixture
@@ -62,6 +62,12 @@ Before then, minor versions may break things.
 
 ### Fixed
 
+* **A row-highlight event dispatched after its pane had gone took the app
+  down.** Filling a table queues one per row, and they are handled afterwards
+  — including while pb is shutting down, when the detail pane they would draw
+  into no longer exists. Quitting while the initial load was still running
+  could end in a traceback. There is nothing to redraw at that point, so
+  nothing is.
 * **A run could lose its output on macOS, PLAY RECAP included.** The parent
   closed the pty slave as soon as the child was spawned, so the master reported
   EOF the moment the child exited — and on BSD that EOF discards whatever is

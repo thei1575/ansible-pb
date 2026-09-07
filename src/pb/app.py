@@ -20,6 +20,7 @@ from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, VerticalScroll
+from textual.css.query import NoMatches
 from textual.widgets import DataTable, Footer, Static, TabbedContent, TabPane
 
 from . import __version__, history, hoststatus, meta, runner, update
@@ -414,18 +415,25 @@ class PbApp(App[None]):
     @on(DataTable.RowHighlighted)
     def _selection_moved(self, event: DataTable.RowHighlighted) -> None:
         which = event.data_table.id
-        if which == "playbooks":
-            self._render_playbook_detail()
-        elif which == "hosts":
-            self._render_host_detail()
-        elif which == "roles":
-            self._render_role_detail()
-        elif which == "vaults":
-            self._render_vault_detail()
-        elif which == "status":
-            self._render_status_detail()
-        elif which == "history":
-            self._render_run_detail()
+        # Filling a table queues one of these per row, and they are dispatched
+        # after the fact — including while the app is being torn down, when
+        # the pane they would draw into has already gone. There is nothing to
+        # redraw then, and nothing worth a traceback on the way out.
+        try:
+            if which == "playbooks":
+                self._render_playbook_detail()
+            elif which == "hosts":
+                self._render_host_detail()
+            elif which == "roles":
+                self._render_role_detail()
+            elif which == "vaults":
+                self._render_vault_detail()
+            elif which == "status":
+                self._render_status_detail()
+            elif which == "history":
+                self._render_run_detail()
+        except NoMatches:
+            pass
 
     # --- detail panes ---------------------------------------------------
 
