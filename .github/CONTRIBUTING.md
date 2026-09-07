@@ -65,6 +65,32 @@ an SSH key, or an `ansible` binary.
 a developer who has it exported must not get different results from CI. If you
 add anything else that reads the environment, clear it the same way.
 
+## The documentation site
+
+The site under [thei1575.github.io/ansible-pb](https://thei1575.github.io/ansible-pb/)
+is [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) over the
+Markdown in `docs/`. Serve it with live reload:
+
+```bash
+uv run --group docs mkdocs serve
+```
+
+Build it the way CI does, which fails on a broken internal link or a missing
+snippet:
+
+```bash
+uv run --group docs mkdocs build --strict
+```
+
+The changelog, this file and `SECURITY.md` have one home each — the repo root
+and `.github/`. The site includes them with `pymdownx.snippets` rather than
+keeping a second copy, so **links inside them must be absolute**: a
+repo-relative link renders correctly on GitHub and 404s on the site.
+
+A change to how pb behaves belongs in `docs/` in the same pull request. The
+pages that go stale fastest are `docs/reference/keys.md` and
+`docs/reference/files.md` — both enumerate things the code owns.
+
 ## Commit messages
 
 Write the subject line as what the change does for the user, in the
@@ -78,4 +104,5 @@ Python version, your OS, and what `ansible --version` prints. If a command
 pb built was wrong, paste the command line from the right-hand pane — that is
 usually the whole bug.
 
-Please do **not** file security issues in public. See [SECURITY.md](SECURITY.md).
+Please do **not** file security issues in public. See
+[SECURITY.md](https://github.com/thei1575/ansible-pb/blob/main/.github/SECURITY.md).

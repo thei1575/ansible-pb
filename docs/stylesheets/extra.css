@@ -1,0 +1,154 @@
+/* pb's palette: a deep teal that survives both schemes, plus a few pieces of
+   polish the built-in theme has no opinion about. */
+
+:root,
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: #14625f;
+  --md-primary-fg-color--light: #1d7d79;
+  --md-primary-fg-color--dark: #0d4442;
+  --md-primary-bg-color: #ffffff;
+  --md-primary-bg-color--light: #ffffffb3;
+
+  --md-accent-fg-color: #0f8f88;
+  --md-accent-fg-color--transparent: #0f8f881a;
+  --md-accent-bg-color: #ffffff;
+  --md-accent-bg-color--light: #ffffffb3;
+
+  --md-typeset-a-color: #106b67;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-hue: 205;
+
+  --md-primary-fg-color: #0d4442;
+  --md-primary-fg-color--light: #14625f;
+  --md-primary-fg-color--dark: #082f2e;
+
+  --md-accent-fg-color: #5fd3ca;
+  --md-accent-fg-color--transparent: #5fd3ca1a;
+
+  --md-typeset-a-color: #46c3ba;
+}
+
+/* --- the home page hero ------------------------------------------------- */
+
+.pb-hero {
+  margin: 0 0 2.4rem;
+  text-align: center;
+}
+
+.pb-hero h1 {
+  margin: 0 0 0.4rem;
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--md-default-fg-color);
+}
+
+.pb-hero p {
+  max-width: 34rem;
+  margin: 0 auto 1.2rem;
+  font-size: 0.9rem;
+  color: var(--md-default-fg-color--light);
+}
+
+.pb-hero .md-button {
+  margin: 0.2rem;
+}
+
+/* --- a terminal frame for the "what it looks like" block ---------------- */
+
+.pb-term {
+  margin: 1.2rem 0;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.4rem;
+  overflow: hidden;
+  box-shadow: var(--md-shadow-z1);
+}
+
+.pb-term > .pb-term-bar {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.45rem 0.7rem;
+  background: var(--md-default-fg-color--lightest);
+}
+
+.pb-term > .pb-term-bar span {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--md-default-fg-color--light);
+  opacity: 0.5;
+}
+
+.pb-term > .pb-term-bar em {
+  margin-left: 0.4rem;
+  font-size: 0.62rem;
+  font-style: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-default-fg-color--light);
+}
+
+.pb-term .highlight,
+.pb-term pre {
+  margin: 0;
+}
+
+/* The mock is box-drawing art, so every glyph on a line has to come from the
+   same font: a webfont whose Latin subset lacks U+2500.. falls back for the
+   borders only, and the ~0.03px advance difference walks the frame out of
+   alignment across 78 columns. A complete local monospace draws all of it. */
+.pb-term pre,
+.pb-term code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  font-variant-ligatures: none;
+}
+
+/* A line box taller than the glyph leaves a gap between the box-drawing
+   verticals on consecutive lines, so the frame reads as dashed. Tighten it
+   until they meet. */
+.pb-term pre > code {
+  line-height: 1.15;
+}
+
+.pb-term pre > code {
+  border-radius: 0;
+}
+
+/* --- key-map and option tables ------------------------------------------ */
+
+/* The key map is dense and read by scanning: monospace the first column and
+   let it breathe rather than wrap. */
+.pb-keys table th:first-child,
+.pb-keys table td:first-child {
+  font-family: var(--md-code-font-family);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.md-typeset table:not([class]) td code {
+  white-space: nowrap;
+}
+
+/* --- grid cards --------------------------------------------------------- */
+
+.md-typeset .grid.cards > ul > li {
+  border-radius: 0.4rem;
+}
+
+.md-typeset .grid.cards > ul > li > hr {
+  margin: 0.6rem 0;
+}
+
+/* Tighten the icon + heading pairing inside a card. */
+.md-typeset .grid.cards > ul > li > p:first-child > .twemoji:first-child,
+.md-typeset .grid.cards > ul > li > p:first-child > .lg {
+  color: var(--md-primary-fg-color);
+}
+
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > ul > li > p:first-child > .twemoji:first-child,
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > ul > li > p:first-child > .lg {
+  color: var(--md-accent-fg-color);
+}
