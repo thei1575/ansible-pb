@@ -86,6 +86,25 @@ def _no_ambient_inventory(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("ANSIBLE_INVENTORY", raising=False)
 
 
+@pytest.fixture(autouse=True)
+def pb_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Everything pb writes outside the repo, redirected into tmp_path.
+
+    `config_dir()` is one directory holding both what the update check
+    remembers and which plugins are installed, and `$PB_HOME` moves all of it.
+    A test must never read — still less install into, or overwrite a skipped
+    version in — the config of whoever is running it. The two off switches go
+    with it, so a developer who has either exported does not get different
+    results from CI.
+    """
+    home = tmp_path / "pb-home"
+    monkeypatch.setenv("PB_HOME", str(home))
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    monkeypatch.delenv("PB_NO_UPDATE_CHECK", raising=False)
+    monkeypatch.delenv("PB_NO_PLUGINS", raising=False)
+    return home
+
+
 def _write(path: Path, text: str) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
@@ -172,18 +191,7 @@ def _have(binary: str) -> bool:
 
 # --- plugins ---------------------------------------------------------
 #
-# Plugin state lives in a config directory, so every test gets one of its own
-# in tmp_path: a test must never read, still less install into, the config of
-# whoever is running it.
-
-
-@pytest.fixture(autouse=True)
-def pb_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    home = tmp_path / "pb-home"
-    monkeypatch.setenv("PB_HOME", str(home))
-    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
-    monkeypatch.delenv("PB_NO_PLUGINS", raising=False)
-    return home
+# The store lives under `pb_home` above, so every test gets one of its own.
 
 
 @pytest.fixture

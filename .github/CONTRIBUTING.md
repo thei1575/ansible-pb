@@ -26,7 +26,7 @@ error-prone".
 * **The plugin API is versioned.** `pb.plugins.api` is what third-party code
   imports. Adding an optional hook is fine; changing or removing one means
   bumping `API_VERSION`, which makes pb refuse every plugin written for the old
-  number. See [docs/PLUGINS.md](../docs/PLUGINS.md).
+  number. See [Writing a plugin](https://thei1575.github.io/ansible-pb/reference/writing-plugins/).
 
 ## Getting set up
 
@@ -73,14 +73,42 @@ an SSH key, or an `ansible` binary.
 a developer who has it exported must not get different results from CI. If you
 add anything else that reads the environment, clear it the same way.
 
-Plugin state lives in a config directory, so an autouse fixture points
-`$PB_HOME` at `tmp_path`: a test must never read, still less install into, the
-config of whoever is running it. The `make_plugin`, `linked_plugin` and
-`plugin_git_repo` fixtures build plugins on disk, the last one in a local git
-repository — installing "from GitHub" is cloning a git URL, and a directory is
-such a URL, so the install path is tested end to end without a network.
-`tests/test_plugin_app.py` drives a real headless Textual app, because a tab
-that is not mounted and a key that is not bound are failures no unit test sees.
+Everything pb writes outside the repo — what the update check remembers and
+which plugins are installed — sits in one `config_dir()`, and an autouse
+fixture points `$PB_HOME` at `tmp_path` so a test never reads, installs into,
+or overwrites the config of whoever is running it. The `make_plugin`,
+`linked_plugin` and `plugin_git_repo` fixtures build plugins on disk, the last
+one in a local git repository — installing "from GitHub" is cloning a git URL,
+and a directory is such a URL, so the install path is tested end to end
+without a network. `tests/test_plugin_app.py` drives a real headless Textual
+app, because a tab that is not mounted and a key that is not bound are
+failures no unit test sees.
+
+## The documentation site
+
+The site under [thei1575.github.io/ansible-pb](https://thei1575.github.io/ansible-pb/)
+is [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) over the
+Markdown in `docs/`. Serve it with live reload:
+
+```bash
+uv run --group docs mkdocs serve
+```
+
+Build it the way CI does, which fails on a broken internal link or a missing
+snippet:
+
+```bash
+uv run --group docs mkdocs build --strict
+```
+
+The changelog, this file and `SECURITY.md` have one home each — the repo root
+and `.github/`. The site includes them with `pymdownx.snippets` rather than
+keeping a second copy, so **links inside them must be absolute**: a
+repo-relative link renders correctly on GitHub and 404s on the site.
+
+A change to how pb behaves belongs in `docs/` in the same pull request. The
+pages that go stale fastest are `docs/reference/keys.md` and
+`docs/reference/files.md` — both enumerate things the code owns.
 
 ## Commit messages
 
@@ -95,4 +123,5 @@ Python version, your OS, and what `ansible --version` prints. If a command
 pb built was wrong, paste the command line from the right-hand pane — that is
 usually the whole bug.
 
-Please do **not** file security issues in public. See [SECURITY.md](SECURITY.md).
+Please do **not** file security issues in public. See
+[SECURITY.md](https://github.com/thei1575/ansible-pb/blob/main/.github/SECURITY.md).

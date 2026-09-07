@@ -9,11 +9,12 @@ install cannot come back to life on the next start.
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+
+from ..config import config_dir as _config_dir
 
 STATE_VERSION = 1
 STATE_NAME = "plugins.json"
@@ -23,14 +24,8 @@ class StoreError(Exception):
     """The store cannot do what was asked — usually a name that is not installed."""
 
 
-def config_dir() -> Path:
-    """pb's config directory: $PB_HOME, else $XDG_CONFIG_HOME/pb, else ~/.config/pb."""
-    home = os.environ.get("PB_HOME")
-    if home:
-        return Path(home).expanduser()
-    xdg = os.environ.get("XDG_CONFIG_HOME")
-    base = Path(xdg).expanduser() if xdg else Path.home() / ".config"
-    return base / "pb"
+# Re-exported so a plugin need not know which module the rule lives in.
+config_dir = _config_dir
 
 
 @dataclass

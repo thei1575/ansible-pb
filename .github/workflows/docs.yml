@@ -1,0 +1,57 @@
+# Publishes the documentation site to GitHub Pages.
+#
+# One-time setup: Settings → Pages → Build and deployment → Source →
+# "GitHub Actions". Without that, this workflow builds and then fails to
+# deploy. The CI workflow builds the site on every pull request, so a broken
+# page is caught before it gets here.
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/**
+      - mkdocs.yml
+      - CHANGELOG.md
+      - .github/CONTRIBUTING.md
+      - .github/SECURITY.md
+      - .github/workflows/docs.yml
+      - pyproject.toml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Only one deployment at a time, and let a newer one finish rather than
+# cancelling it half-way through a Pages upload.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+      - run: uv run --group docs mkdocs build --strict
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

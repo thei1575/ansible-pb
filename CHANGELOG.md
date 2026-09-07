@@ -25,7 +25,7 @@ Before then, minor versions may break things.
   Doctor checks and command-palette entries, edit or veto a command before it
   runs, react to a finished run, append to any detail pane and the status
   strip — or **replace** one of pb's own actions, with `base_action()` to wrap
-  the built-in rather than lose it. `docs/PLUGINS.md` documents every hook.
+  the built-in rather than lose it. The site documents every hook under Reference → Writing a plugin.
 
   A new Plugins tab (`8`) installs, updates, enables and removes them, and
   shows what each one adds and which commit it is on. Installing, enabling and
@@ -40,6 +40,27 @@ Before then, minor versions may break things.
   becomes a failed check on the Doctor tab — pb keeps running.
   `pb --no-plugins` (or `PB_NO_PLUGINS=1`) starts with none of them.
 
+* **pb tells you when there is a newer pb.** Once a day at startup it asks
+  GitHub for the latest release, and if there is one it shows the changelog
+  entries between the version you are running and that one, along with the
+  exact command that would install it. Accept and pb runs that command and
+  tells you to restart; skip and that version is never offered again; escape
+  and it asks again tomorrow. `ctrl+u` checks on demand, ignoring both the
+  interval and anything you skipped. Doctor names the version you are running
+  and how it was installed.
+* The install command is built for however pb was installed — `uv tool
+  install --force`, `pipx install --force` or `pip install --upgrade` — and
+  pins the tag, because `uv tool upgrade` on a git URL keeps the ref it was
+  installed with and would report success without changing anything. A clone
+  installed with `-e` is not touched: pb says to `git pull` instead.
+* This is the only network connection pb makes on its own: one unauthenticated
+  GET to `api.github.com` sending nothing but a `pb/<version>` User-Agent, and
+  the repository's `CHANGELOG.md` when there is something to show. `pb
+  --no-update-check` or `PB_NO_UPDATE_CHECK=1` turns it off. Which version you
+  skipped and when pb last looked live in `~/.config/pb/update.json`.
+  [SECURITY.md](https://github.com/thei1575/ansible-pb/blob/main/.github/SECURITY.md)
+  says so in full — it previously promised
+  pb made no network connections at all, and no longer can.
 * **The inventory path is no longer fixed at `inventories/production`.** pb
   follows Ansible's own precedence — `-i/--inventory`, then
   `$ANSIBLE_INVENTORY`, then `[defaults] inventory` in `ansible.cfg` — so a
@@ -55,11 +76,12 @@ Before then, minor versions may break things.
   setting intact.
 * Doctor names the inventory pb settled on, where that came from, and whether
   it exists.
-* A test suite (`tests/`, 292 tests) covering inventory resolution, repo
+* A test suite (`tests/`, 366 tests) covering inventory resolution, repo
   discovery, playbook, role and vault parsing, recap parsing, the pty streamer,
-  secret redaction, the SSH probe's accessors, the CLI, the run history, and
-  the plugin system end to end — all against a fixture Ansible repo built in
-  `tmp_path`. No `ansible` binary, no network.
+  secret redaction, the SSH probe's accessors, the CLI, the run history, the
+  update check and the prompt it puts on screen, and the plugin system end to
+  end — all against a fixture Ansible repo built in `tmp_path`. No `ansible`
+  binary, no network.
 * GitHub Actions CI: `ruff check` plus the tests on Python 3.11, 3.12 and 3.13,
   once more on macOS for the pty handling, and a job that builds the sdist and
   wheel, installs the wheel clean and checks `pb --version` and that `pb.tcss`
@@ -68,11 +90,36 @@ Before then, minor versions may break things.
   a patch has to hold), `SECURITY.md` (what pb touches on your machine and your
   hosts, and how to report privately), `CODE_OF_CONDUCT.md`, issue forms and a
   pull-request template.
-* `.editorconfig`, a Dependabot schedule, and a `dev` dependency group so
-  `uv sync` gets ruff and pytest.
+* A documentation site at
+  [thei1575.github.io/ansible-pb](https://thei1575.github.io/ansible-pb/) —
+  [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) over
+  `docs/`, with a page per tab, the inventory resolution rules worked through,
+  a full key map, troubleshooting, and an inventory of every file and process
+  pb touches. CI builds it with `--strict` on every pull request, so a broken
+  link fails the build; pushes to `main` publish it to GitHub Pages. The
+  changelog, `CONTRIBUTING.md` and `SECURITY.md` are included into the site
+  rather than copied.
+* `.editorconfig`, a Dependabot schedule, and `dev` and `docs` dependency
+  groups so `uv sync` gets ruff and pytest and
+  `uv run --group docs mkdocs serve` gets the site.
+
+### Changed
+
+* **Everything pb keeps outside your repo now lives in one directory**, found
+  the same way for all of it: `$PB_HOME` if you set it, else
+  `$XDG_CONFIG_HOME/pb`, else `~/.config/pb`. The update check and the plugin
+  store arrived separately and each had its own idea of where that was;
+  `$PB_HOME` had moved one and not the other. `config_dir()` is now the single
+  rule, so setting it moves the lot.
 
 ### Fixed
 
+* **A row-highlight event dispatched after its pane had gone took the app
+  down.** Filling a table queues one per row, and they are handled afterwards
+  — including while pb is shutting down, when the detail pane they would draw
+  into no longer exists. Quitting while the initial load was still running
+  could end in a traceback. There is nothing to redraw at that point, so
+  nothing is.
 * **A run could lose its output on macOS, PLAY RECAP included.** The parent
   closed the pty slave as soon as the child was spawned, so the master reported
   EOF the moment the child exited — and on BSD that EOF discards whatever is

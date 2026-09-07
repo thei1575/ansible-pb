@@ -7,7 +7,7 @@ methods are all optional: override the hooks you need and ignore the rest.
 
 A plugin is ordinary Python running in pb's own process. It can read the repo,
 add tabs and keys, and replace an existing action outright — see
-`docs/PLUGINS.md`.
+`docs/reference/writing-plugins.md`.
 """
 
 from __future__ import annotations

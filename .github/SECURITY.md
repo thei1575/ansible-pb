@@ -61,9 +61,19 @@ worth knowing:
   installing a plugin is a decision to trust its author, the same as running a
   script they sent you. `pb plugin disable <name>` stops loading one, and
   `pb --no-plugins` starts pb with none.
-* **pb makes no network connections of its own.** No telemetry, no update
-  check, no outbound anything. The only traffic is Ansible's, SSH's, and
-  `git`'s when you ask pb to install or update a plugin.
+* **pb makes exactly one network connection of its own: the update check.**
+  Once a day at startup it GETs the release list of its own repository from
+  `api.github.com`, and — only when there is a newer version — its `CHANGELOG.md`
+  from `raw.githubusercontent.com`. Both are unauthenticated and anonymous: no
+  telemetry, nothing about you, your repo or your hosts, and the only thing
+  identifying at all is a `pb/<version>` User-Agent, which GitHub requires.
+  Which version you declined is remembered in `~/.config/pb/update.json`, on
+  your machine and nowhere else. `pb --no-update-check`, or
+  `PB_NO_UPDATE_CHECK=1`, stops it; `ctrl+u` then checks only when you ask.
+  Accepting an update runs an installer (`uv tool install`, `pipx install` or
+  `pip install`) against a tag of that same repository — pb shows you the whole
+  command first and runs nothing else. Everything else pb sends is Ansible's,
+  SSH's, and `git`'s when you ask pb to install or update a plugin.
 
 ## Out of scope
 

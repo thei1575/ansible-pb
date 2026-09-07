@@ -45,6 +45,18 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: uv run pytest -q
 
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+      # --strict turns a broken internal link or a missing snippet into a
+      # failure, which is the only way docs stay correct as the code moves.
+      - run: uv run --group docs mkdocs build --strict
+
   build:
     name: Build and install
     runs-on: ubuntu-latest

@@ -3,6 +3,7 @@
 [![CI](https://github.com/thei1575/ansible-pb/actions/workflows/ci.yml/badge.svg)](https://github.com/thei1575/ansible-pb/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-thei1575.github.io%2Fansible--pb-14625f)](https://thei1575.github.io/ansible-pb/)
 
 A terminal console for an Ansible repository. Run playbooks, read the resolved
 inventory, probe hosts over SSH, manage per-group vaults, and keep a record of
@@ -30,6 +31,40 @@ allocates a pty so Ansible keeps its colour.
 
 Ansible itself is deliberately *not* a dependency: pb drives whatever `ansible`
 is already on your `PATH`, so it never interferes with how you install it.
+
+### Staying up to date
+
+pb is installed from git, so it cannot be upgraded by a package manager that
+knows nothing about it. Instead pb asks GitHub once a day whether there is a
+newer release, and if there is, shows you what changed and the exact command
+that would install it:
+
+```
+pb 0.2.0 is out — you are running 0.1.0
+
+  ## [0.2.0] — 2026-09-07
+  ### Added
+  * …the changelog entries between the two versions…
+
+$ uv tool install --force git+https://github.com/thei1575/ansible-pb@v0.2.0
+
+  [ Update now ]  [ Skip this version ]  [ Later ]
+```
+
+Accept and pb runs that command and tells you to restart. Skip and that version
+is never offered again. Escape and it asks again tomorrow. The command is built
+for however pb was installed — `uv tool`, `pipx` or `pip`; a clone you installed
+with `-e` is left to `git pull`.
+
+`ctrl+u` checks whenever you want, ignoring the once-a-day interval and anything
+you skipped.
+
+The check is one unauthenticated GET to `api.github.com`, sending nothing but a
+`pb/<version>` User-Agent. To turn it off:
+
+```bash
+pb --no-update-check          # or: export PB_NO_UPDATE_CHECK=1
+```
 
 ## Use
 
@@ -59,7 +94,10 @@ pb -i inventories/staging
 resolves it. The Doctor tab names the inventory pb settled on and where that
 came from, which is the quickest way to check pb and Ansible agree.
 
-Press `?` inside for the full key map. `pb plugin --help` manages plugins.
+Press `?` inside for the full key map. The full documentation is at
+**[thei1575.github.io/ansible-pb](https://thei1575.github.io/ansible-pb/)** —
+a page per tab, the inventory resolution rules, how to write a plugin, and
+everything pb touches on your machine and your hosts.
 
 | Tab | What it is for |
 |---|---|
@@ -111,8 +149,9 @@ pb plugin link .          # pb reads your checkout in place
 pb plugin doctor          # does it parse? does it import?
 ```
 
-[docs/PLUGINS.md](docs/PLUGINS.md) is the authoring guide: every hook, with an
-example, and how to publish to GitHub.
+[Writing a plugin](https://thei1575.github.io/ansible-pb/reference/writing-plugins/)
+is the authoring guide: every hook, with an example, and how to publish to
+GitHub.
 
 A plugin is Python running inside pb with your permissions — there is no
 sandbox. Installing asks first and shows what it is about to clone; every
@@ -158,6 +197,7 @@ src/pb/            the package — one module per concern
   run.py           the full-screen run view
   history.py       the durable record under .pb/runs/
   hoststatus.py    the read-only SSH health probe
+  update.py        the release check and the command that installs one
   widgets.py       the modal pickers, prompts and viewers
   pb.tcss          the stylesheet
   plugins/         the plugin system
@@ -170,8 +210,9 @@ src/pb/            the package — one module per concern
     host.py        binding plugins into the running app
     cli.py         `pb plugin …`
     scaffold.py    `pb plugin new`
-docs/PLUGINS.md    how to write one
+  config.py        where pb keeps what is not about the repo
 tests/             pytest, against a fixture Ansible repo in tmp_path
+docs/              the documentation site (Material for MkDocs)
 .github/           CI, issue and pull-request templates, and the
                    contributing, security and conduct documents
 ```
@@ -183,6 +224,7 @@ uv sync
 uv run pb ~/my-ansible-repo
 uv run ruff check .
 uv run pytest
+uv run --group docs mkdocs serve       # the documentation site, with reload
 ```
 
 The tests build a throwaway Ansible repo on disk, so they need neither an

@@ -1,0 +1,150 @@
+# The documentation site for pb. Build it with `uv run --group docs mkdocs serve`.
+site_name: pb
+site_url: https://thei1575.github.io/ansible-pb/
+site_author: Theis N. Jensen
+site_description: >-
+  A terminal console for an Ansible repository. Run playbooks, read the
+  resolved inventory, probe hosts over SSH, manage per-group vaults, and keep
+  a record of everything you applied — without leaving the terminal.
+
+repo_url: https://github.com/thei1575/ansible-pb
+repo_name: thei1575/ansible-pb
+edit_uri: edit/main/docs/
+
+copyright: Copyright &copy; 2026 Theis N. Jensen — MIT licensed
+
+theme:
+  name: material
+  language: en
+  icon:
+    logo: material/console
+    repo: fontawesome/brands/github
+  favicon: assets/favicon.svg
+  font:
+    text: Inter
+    code: JetBrains Mono
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  features:
+    - announce.dismiss
+    - content.action.edit
+    - content.code.annotate
+    - content.code.copy
+    - content.tabs.link
+    - content.tooltips
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.sections
+    - navigation.tabs
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+
+plugins:
+  - search
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      title: On this page
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  # The changelog, security policy and contributing guide have one home each,
+  # in the repo root and .github/. The site includes those files rather than
+  # keeping a second copy that can drift.
+  - pymdownx.snippets:
+      base_path:
+        - .
+        - .github
+      check_paths: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/thei1575/ansible-pb
+      name: pb on GitHub
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/ansible-pb/
+      name: ansible-pb on PyPI
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Install: getting-started/index.md
+      - First run: getting-started/first-run.md
+      - Repository layout: getting-started/repository-layout.md
+  - Guide:
+      - Playbooks: guide/playbooks.md
+      - Inventory: guide/inventory.md
+      - Status: guide/status.md
+      - Roles: guide/roles.md
+      - Vault: guide/vault.md
+      - History: guide/history.md
+      - Doctor: guide/doctor.md
+      - Plugins: guide/plugins.md
+  - Reference:
+      - Command line: reference/cli.md
+      - Key map: reference/keys.md
+      - Updating: reference/updates.md
+      - Writing a plugin: reference/writing-plugins.md
+      - Inventory resolution: reference/inventory-resolution.md
+      - Files pb touches: reference/files.md
+      - Troubleshooting: reference/troubleshooting.md
+  - Project:
+      - Architecture: project/architecture.md
+      - Contributing: project/contributing.md
+      - Security: project/security.md
+      - Changelog: project/changelog.md

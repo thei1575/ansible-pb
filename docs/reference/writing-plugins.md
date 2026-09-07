@@ -1,18 +1,12 @@
-# Writing a pb plugin
+# Writing a plugin
 
 A pb plugin is a git repository with a manifest and an importable Python
 module. pb clones it, imports it at start-up, and lets it add tabs, keys and
-Doctor checks, react to every run, or replace something the base app already
-does.
+[Doctor](../guide/doctor.md) checks, react to every run, or replace something
+the base app already does.
 
-```bash
-pb plugin install owner/pb-terraform     # from GitHub
-pb plugin new pb-mine                    # start writing one
-pb plugin list
-```
-
-Plugins are ordinary Python running inside pb, with your permissions. There is
-no sandbox — see [Trust](#trust).
+This page is the authoring reference. For installing, updating and what
+trusting a plugin means, see [Plugins](../guide/plugins.md).
 
 ## The five-minute version
 
@@ -344,29 +338,9 @@ ignored, so a failed install cannot come back to life. pb owns the clones, so
 of your own with `pb plugin link`, which pb reads in place and never touches
 with git.
 
-## Trust
-
-A plugin is Python running inside pb, with your permissions. It can read your
-repo and your `.vault_pass`, change the `ansible` commands pb builds, and
-replace what any key does. There is no sandbox, and pb does not try to
-pretend there is one.
-
-So:
-
-* Installing asks for confirmation, and prints what it is about to clone.
-  `--yes` skips the prompt; without a terminal to ask in, pb refuses rather
-  than installing silently.
-* Nothing a plugin ships runs at install time. The clone is a clone; the code
-  is imported the next time pb starts.
-* Every install records the exact commit. `pb plugin info <name>` shows it,
-  and the checkout is a normal git repository, so `git log` in it tells the
-  truth about what you are running.
-* `pb plugin disable <name>` keeps a plugin installed but stops loading it.
-  `pb --no-plugins` (or `PB_NO_PLUGINS=1`) starts pb with none of them, which
-  is the first thing to try when pb misbehaves.
-
-Read a plugin before you install it, the way you would read a shell script
-someone sent you.
+It is the same directory the [update check](updates.md) keeps its state in,
+and `$PB_HOME` moves all of it. [Files pb touches](files.md#writes-in-your-home-directory)
+covers every file in there.
 
 ## Command reference
 
@@ -384,6 +358,5 @@ pb plugin doctor                      load them all and report the failures
 pb plugin path                        print the plugin directory
 ```
 
-Inside pb, the Plugins tab (`8`) does the same: `i` install, `u` update,
-`e` enable or disable, `r` remove, `o` details. Installing, enabling and
-removing take effect the next time pb starts.
+The same operations are on the [Plugins tab](../guide/plugins.md), and
+[the command line](cli.md) lists every flag.

@@ -20,9 +20,10 @@ from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, VerticalScroll
+from textual.css.query import NoMatches
 from textual.widgets import DataTable, Footer, Static, TabbedContent, TabPane
 
-from . import __version__, history, hoststatus, meta
+from . import __version__, history, hoststatus, meta, runner, update
 from .plugins import api as plugin_api
 from .plugins import cli as plugin_cli
 from .plugins import loader as plugin_loader
@@ -32,7 +33,7 @@ from .plugins import store as plugin_store
 from .plugins.host import PluginCommands, PluginHost
 from .plugins.store import Store
 from .run import RunScreen
-from .widgets import AskText, Confirm, PickMany, PickOne, Viewer
+from .widgets import AskText, Confirm, PickMany, PickOne, UpdatePrompt, Viewer
 
 # A TabPane only stays active while focus is inside it: a focused widget in
 # another pane posts TabPane.Focused and yanks the tab back. So switching tabs
@@ -188,6 +189,7 @@ class PbApp(App[None]):
         Binding("question_mark", "help", "Help"),
         Binding("ctrl+r", "reload", "Reload"),
         Binding("ctrl+g", "changes", "Changes"),
+        Binding("ctrl+u", "check_update", "Update"),
         Binding("1", "tab('tab-playbooks')", "", show=False),
         Binding("2", "tab('tab-inventory')", "", show=False),
         Binding("3", "tab('tab-status')", "", show=False),
@@ -202,7 +204,11 @@ class PbApp(App[None]):
     COMMANDS = App.COMMANDS | {PluginCommands}
 
     def __init__(
-        self, root: Path, inventory: str | None = None, plugins: bool = True
+        self,
+        root: Path,
+        inventory: str | None = None,
+        plugins: bool = True,
+        check_updates: bool = True,
     ) -> None:
         # Plugins are imported before the App exists, because a plugin may
         # ship a stylesheet and Textual wants every CSS path up front. Nothing
@@ -217,6 +223,7 @@ class PbApp(App[None]):
         self.tab_tables = dict(TAB_TABLES)
         self.plugin_records = list(loaded.records.values())
         self.repo = meta.Repo.discover(root, inventory)
+        self.check_updates = check_updates
         self.options = RunOptions()
         self.playbooks: list[meta.Playbook] = []
         self.inventory = meta.Inventory()
@@ -226,6 +233,9 @@ class PbApp(App[None]):
         self.changed: set[str] = set()
         self.host_status: dict[str, hoststatus.HostStatus] = {}
         self.runs: list[history.Run] = []
+        # Set once a check has found something newer, so Doctor can say so
+        # without going back to the network.
+        self.update_release: update.Release | None = None
         self.sub_title = str(root)
 
     # --- layout ------------------------------------------------------
@@ -299,6 +309,8 @@ class PbApp(App[None]):
         self._render_plugin_detail()
         self.query_one("#playbooks", DataTable).focus()
         self.reload()
+        if self.check_updates:
+            self._check_for_update()
 
     def on_unmount(self) -> None:
         self.plugins.shutdown()
@@ -473,20 +485,28 @@ class PbApp(App[None]):
     @on(DataTable.RowHighlighted)
     def _selection_moved(self, event: DataTable.RowHighlighted) -> None:
         which = event.data_table.id
-        if which == "playbooks":
-            self._render_playbook_detail()
-        elif which == "hosts":
-            self._render_host_detail()
-        elif which == "roles":
-            self._render_role_detail()
-        elif which == "vaults":
-            self._render_vault_detail()
-        elif which == "status":
-            self._render_status_detail()
-        elif which == "history":
-            self._render_run_detail()
-        elif which == "plugins":
-            self._render_plugin_detail()
+        # Filling a table queues one of these per row, and they are dispatched
+        # after the fact — including while the app is being torn down, when
+        # the pane they would draw into has already gone. There is nothing to
+        # redraw then, and nothing worth a traceback on the way out. A plugin
+        # tab that was pulled out from under one counts too.
+        try:
+            if which == "playbooks":
+                self._render_playbook_detail()
+            elif which == "hosts":
+                self._render_host_detail()
+            elif which == "roles":
+                self._render_role_detail()
+            elif which == "vaults":
+                self._render_vault_detail()
+            elif which == "status":
+                self._render_status_detail()
+            elif which == "history":
+                self._render_run_detail()
+            elif which == "plugins":
+                self._render_plugin_detail()
+        except NoMatches:
+            pass
 
     # --- detail panes ---------------------------------------------------
 
@@ -1181,6 +1201,83 @@ class PbApp(App[None]):
             return
         self.push_screen(Viewer("uncommitted changes", meta.git_diff(self.repo), "diff"))
 
+    # --- updating pb --------------------------------------------------------
+
+    def action_check_update(self) -> None:
+        """Ask GitHub now, ignoring the once-a-day interval and any skip."""
+        self.notify("checking for a newer pb…")
+        self._check_for_update(manual=True)
+
+    # Its own worker group: `reload()` is exclusive, and a check that cancelled
+    # the startup load would leave the app looking at an empty repo.
+    @work(thread=True, group="update", exclusive=True)
+    def _check_for_update(self, manual: bool = False) -> None:
+        result = update.check(__version__, force=manual)
+        self.call_from_thread(self._update_checked, result, manual)
+
+    def _update_checked(self, result: update.Result, manual: bool) -> None:
+        self.update_release = result.release
+        if result.release is None:
+            if not manual:
+                return
+            if result.error:
+                self.notify(result.error, severity="warning")
+            else:
+                self.notify(f"pb {__version__} is the latest version")
+            return
+
+        release = result.release
+        upgrade = update.upgrade_command(release.tag)
+        self.push_screen(
+            UpdatePrompt(
+                f"pb {release.version} is out — you are running {__version__}",
+                release.notes or f"No release notes — see {release.url}",
+                command=runner.quote(upgrade.argv),
+                note=upgrade.manual,
+                can_install=upgrade.possible,
+            ),
+            lambda answer: self._update_answered(release, upgrade, answer),
+        )
+
+    def _update_answered(
+        self, release: update.Release, upgrade: update.Upgrade, answer: str | None
+    ) -> None:
+        if answer == "skip":
+            update.skip(release.version)
+            self.update_release = None
+            self.notify(f"skipping {release.version} — ctrl+u offers it again")
+            return
+        if answer != "update" or not upgrade.possible:
+            return
+        self.notify(f"installing pb {release.version} with {upgrade.how}…", timeout=10)
+        self._install_update(release, upgrade.argv)
+
+    @work(thread=True, group="update", exclusive=True)
+    def _install_update(self, release: update.Release, argv: list[str]) -> None:
+        code, out = meta.capture(argv, self.repo.root, timeout=600)
+        self.call_from_thread(self._update_installed, release, argv, code, out)
+
+    def _update_installed(
+        self, release: update.Release, argv: list[str], code: int, out: str
+    ) -> None:
+        if code != 0:
+            self.bell()
+            self.push_screen(
+                Viewer(
+                    f"updating to pb {release.version} failed (exit {code})",
+                    f"$ {runner.quote(argv)}\n\n{out}",
+                )
+            )
+            return
+        # The new pb is on disk, but this process is still the old one: a
+        # running Python cannot swap out the package it imported.
+        update.forget_skip()
+        self.update_release = None
+        self.notify(
+            f"pb {release.version} installed — quit and start pb again to use it",
+            timeout=20,
+        )
+
     # --- doctor ------------------------------------------------------------
 
     def action_recheck(self) -> None:
@@ -1213,6 +1310,15 @@ class PbApp(App[None]):
                     style=mark[1],
                 ),
                 Text(detail, style="dim"),
+            )
+
+        if self.update_release is None:
+            add("pb", True, f"{__version__}, installed with {update.install_label()}")
+        else:
+            add(
+                "pb",
+                None,
+                f"{__version__} — {self.update_release.version} is available (ctrl+u)",
             )
 
         code, out = meta.capture(["ansible", "--version"], self.repo.root, timeout=30)
@@ -1537,6 +1643,7 @@ GLOBAL
   1..8          jump to a tab            ctrl+r   reload from disk
   ctrl+g        uncommitted changes      ?        this help
   ctrl+p        command palette          q        quit
+  ctrl+u        check for a newer pb
 
   A yellow ● next to a playbook or role means its files differ from HEAD.
 
@@ -1581,6 +1688,13 @@ PLUGINS
   Installing and removing take effect the next time pb starts.
   From a shell: pb plugin list · install · update · link · new · doctor
   Start pb with --no-plugins to load none of them.
+
+UPDATES
+  pb asks github.com once a day whether there is a newer release, and shows
+  you the changelog and the exact install command before anything happens.
+  Skip a version and it is never offered again; esc asks again tomorrow.
+  Start pb with --no-update-check, or set PB_NO_UPDATE_CHECK=1, to turn the
+  check off — ctrl+u still checks when you ask for it.
 
 WHILE A RUN IS ON SCREEN
   ctrl+c  cancel      w  toggle wrap     s  save the log
@@ -1627,7 +1741,7 @@ base app already has does.
   pb plugin new pb-mine    start writing your own
   pb plugin link .         develop against your own checkout
 
-docs/PLUGINS.md is the authoring guide.
+thei1575.github.io/ansible-pb has the authoring guide.
 """
 
 # The hooks worth naming on the Plugins tab: what this plugin actually does,
@@ -1687,6 +1801,12 @@ def main() -> int:
         action="store_true",
         help="start without loading any plugin (also $PB_NO_PLUGINS)",
     )
+    parser.add_argument(
+        "--no-update-check",
+        action="store_true",
+        help="do not ask GitHub for a newer pb at startup (PB_NO_UPDATE_CHECK=1 "
+        "does the same); ctrl+u still checks on request",
+    )
     parser.add_argument("--version", action="version", version=f"pb {__version__}")
     args = parser.parse_args()
 
@@ -1707,5 +1827,10 @@ def main() -> int:
         return 2
 
     plugins = not (args.no_plugins or os.environ.get("PB_NO_PLUGINS"))
-    PbApp(root, args.inventory, plugins=plugins).run()
+    PbApp(
+        root,
+        args.inventory,
+        plugins=plugins,
+        check_updates=not args.no_update_check,
+    ).run()
     return 0

@@ -9,8 +9,8 @@ Plugins import from here:
 
     from pb.plugins import CheckResult, KeySpec, Plugin, TabSpec
 
-The authoring guide is `docs/PLUGINS.md`; `pb plugin new` writes a working
-plugin to start from.
+The authoring guide is `docs/reference/writing-plugins.md`; `pb plugin new`
+writes a working plugin to start from.
 """
 
 from __future__ import annotations
