@@ -8,6 +8,7 @@ dist/
 *.egg-info/
 
 # Tooling
+site/
 .ruff_cache/
 .mypy_cache/
 .pytest_cache/

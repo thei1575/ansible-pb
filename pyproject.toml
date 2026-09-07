@@ -30,6 +30,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/thei1575/ansible-pb"
+Documentation = "https://thei1575.github.io/ansible-pb/"
 Issues = "https://github.com/thei1575/ansible-pb/issues"
 Changelog = "https://github.com/thei1575/ansible-pb/blob/main/CHANGELOG.md"
 Source = "https://github.com/thei1575/ansible-pb"
@@ -42,6 +43,11 @@ pb = "pb.app:main"
 dev = [
   "pytest>=8",
   "ruff>=0.14",
+]
+# Only the docs site needs these; `uv sync` leaves them out until you ask for
+# them with `--group docs`.
+docs = [
+  "mkdocs-material>=9.7,<10",
 ]
 
 [tool.hatch.version]
@@ -57,6 +63,8 @@ include = [
   "README.md",
   "CHANGELOG.md",
   "LICENSE",
+  "docs",
+  "mkdocs.yml",
   ".github/CONTRIBUTING.md",
   ".github/SECURITY.md",
   ".github/CODE_OF_CONDUCT.md",

@@ -3,6 +3,7 @@
 [![CI](https://github.com/thei1575/ansible-pb/actions/workflows/ci.yml/badge.svg)](https://github.com/thei1575/ansible-pb/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-thei1575.github.io-blue)](https://thei1575.github.io/ansible-pb/)
 
 A terminal console for an Ansible repository. Run playbooks, read the resolved
 inventory, probe hosts over SSH, manage per-group vaults, and keep a record of
@@ -59,7 +60,8 @@ pb -i inventories/staging
 resolves it. The Doctor tab names the inventory pb settled on and where that
 came from, which is the quickest way to check pb and Ansible agree.
 
-Press `?` inside for the full key map.
+Press `?` inside for the full key map. The full documentation is at
+<https://thei1575.github.io/ansible-pb/>.
 
 | Tab | What it is for |
 |---|---|
@@ -125,8 +127,9 @@ src/pb/            the package — one module per concern
   widgets.py       the modal pickers, prompts and viewers
   pb.tcss          the stylesheet
 tests/             pytest, against a fixture Ansible repo in tmp_path
-.github/           CI, issue and pull-request templates, and the
-                   contributing, security and conduct documents
+docs/              the documentation site (mkdocs.yml at the root)
+.github/           CI, the docs deploy, issue and pull-request templates, and
+                   the contributing, security and conduct documents
 ```
 
 ## Development
@@ -136,6 +139,7 @@ uv sync
 uv run pb ~/my-ansible-repo
 uv run ruff check .
 uv run pytest
+uv run --group docs mkdocs serve
 ```
 
 The tests build a throwaway Ansible repo on disk, so they need neither an
@@ -149,7 +153,9 @@ for how the code is laid out and what the invariants are (pb never
 reimplements Ansible, nothing runs on the UI thread, secrets stay masked by
 default).
 
-Changes worth knowing about are in [CHANGELOG.md](CHANGELOG.md).
+Changes worth knowing about are in [CHANGELOG.md](CHANGELOG.md), and the
+documentation site is built from [docs/](docs/) — pushing to `main`
+publishes it.
 
 Please report security issues privately rather than in an issue — see
 [SECURITY.md](.github/SECURITY.md), which also explains exactly what pb touches on your
