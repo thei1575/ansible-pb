@@ -42,6 +42,13 @@ Before then, minor versions may break things.
 
 ### Fixed
 
+* **A run could lose its output on macOS, PLAY RECAP included.** The parent
+  closed the pty slave as soon as the child was spawned, so the master reported
+  EOF the moment the child exited — and on BSD that EOF discards whatever is
+  still in the pty buffer. A short command could lose everything it printed.
+  The parent now keeps the slave open for the length of the read loop, which
+  ends on the child exiting with a drained buffer rather than on EOF. Found by
+  the macOS CI run, which is why it is there.
 * An inventory that made Ansible print a warning was reported as
   "could not parse ansible-inventory output". `capture()` merges stderr into
   stdout and `ansible-inventory` warns on stderr, so the JSON was never the

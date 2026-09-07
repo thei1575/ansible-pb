@@ -77,11 +77,15 @@ def stream(
         os.close(slave)
         on_line(f"pb: {argv[0]}: not found on PATH")
         return 127
-    finally:
-        # The parent must not hold the slave open or it never sees EOF.
-        with contextlib.suppress(OSError):
-            os.close(slave)
 
+    # The parent holds the slave open on purpose, for the length of the read
+    # loop. Closing it here makes the master report EOF the moment the child
+    # exits, and on BSD that EOF discards whatever is still sitting in the pty
+    # buffer — which is where the last lines of a run live, PLAY RECAP
+    # included. A short command can lose its output entirely that way.
+    #
+    # With a writer still open no EOF arrives, so the loop below ends the way
+    # it was always written to: the child is gone and the buffer has drained.
     killed = False
     buf = b""
     try:
@@ -96,8 +100,11 @@ def stream(
             except (OSError, ValueError):
                 break
             if not ready:
-                # Child is gone and the pty is quiet; one more pass to be safe.
-                if proc.poll() is not None and not killed and not _drain_ready(master):
+                # Child is gone and the pty has nothing left. `_drain_ready` is
+                # what gives a dying child the chance to flush its last lines,
+                # so this holds for a cancelled run too — and it has to, since
+                # the parent keeps a writer open and no EOF is ever coming.
+                if proc.poll() is not None and not _drain_ready(master):
                     break
                 continue
 
@@ -116,8 +123,9 @@ def stream(
             for line in lines:
                 on_line(line.decode("utf-8", "replace").rstrip("\r"))
     finally:
-        with contextlib.suppress(OSError):
-            os.close(master)
+        for fd in (master, slave):
+            with contextlib.suppress(OSError):
+                os.close(fd)
 
     if buf:
         on_line(buf.decode("utf-8", "replace").rstrip("\r"))
