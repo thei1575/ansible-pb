@@ -8,6 +8,7 @@ cancelling kills the forks ansible spawned, not just ansible itself.
 
 from __future__ import annotations
 
+import contextlib
 import errno
 import fcntl
 import os
@@ -31,10 +32,8 @@ def quote(argv: list[str]) -> str:
 
 
 def _set_size(fd: int, cols: int, rows: int) -> None:
-    try:
+    with contextlib.suppress(OSError):
         fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
-    except OSError:
-        pass
 
 
 def stream(
@@ -80,10 +79,8 @@ def stream(
         return 127
     finally:
         # The parent must not hold the slave open or it never sees EOF.
-        try:
+        with contextlib.suppress(OSError):
             os.close(slave)
-        except OSError:
-            pass
 
     killed = False
     buf = b""
@@ -99,10 +96,9 @@ def stream(
             except (OSError, ValueError):
                 break
             if not ready:
-                if proc.poll() is not None and not killed:
-                    # Child is gone and the pty is quiet; one more pass to be safe.
-                    if not _drain_ready(master):
-                        break
+                # Child is gone and the pty is quiet; one more pass to be safe.
+                if proc.poll() is not None and not killed and not _drain_ready(master):
+                    break
                 continue
 
             try:
@@ -120,10 +116,8 @@ def stream(
             for line in lines:
                 on_line(line.decode("utf-8", "replace").rstrip("\r"))
     finally:
-        try:
+        with contextlib.suppress(OSError):
             os.close(master)
-        except OSError:
-            pass
 
     if buf:
         on_line(buf.decode("utf-8", "replace").rstrip("\r"))
@@ -142,10 +136,8 @@ def _drain_ready(fd: int) -> bool:
 
 
 def _signal_group(proc: subprocess.Popen, sig: int) -> None:
-    try:
+    with contextlib.suppress(ProcessLookupError, PermissionError):
         os.killpg(os.getpgid(proc.pid), sig)
-    except (ProcessLookupError, PermissionError):
-        pass
 
 
 def parse_recap(lines: list[str]) -> dict[str, dict[str, int]]:

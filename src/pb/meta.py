@@ -406,7 +406,7 @@ def git_diff(repo: Repo, max_lines: int = 4000) -> str:
     _, diff = capture(["git", "diff", "HEAD"], repo.root, timeout=30)
     lines = diff.splitlines()
     if len(lines) > max_lines:
-        lines = lines[:max_lines] + [f"", f"… {len(diff.splitlines()) - max_lines} more lines"]
+        lines = lines[:max_lines] + ["", f"… {len(diff.splitlines()) - max_lines} more lines"]
     return status.rstrip() + "\n\n" + "\n".join(lines)
 
 

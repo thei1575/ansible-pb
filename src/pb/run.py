@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import time
 from collections import deque
-from pathlib import Path
 
 from rich.text import Text
 from textual import work

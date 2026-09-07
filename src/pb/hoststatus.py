@@ -26,7 +26,9 @@ echo "diskpct=$(df -h / | awk 'NR==2{gsub("%","",$5); print $5}')"
 echo "mem=$(free -h | awk '/^Mem:/{print $3"/"$2}')"
 if [ -f /var/run/reboot-required ]; then echo "reboot=yes"; else echo "reboot=no"; fi
 echo "updates=$(apt-get -s -o Debug::NoLocking=true upgrade | grep -c '^Inst')"
-echo "failed=$(systemctl list-units --state=failed --no-legend --plain | awk '{print $1}' | paste -sd, -)"
+failed=$(systemctl list-units --state=failed --no-legend --plain \
+  | awk '{print $1}' | paste -sd, -)
+echo "failed=$failed"
 echo "services=$(systemctl list-units --type=service --state=running --no-legend --plain | wc -l)"
 docker ps --format '{{.Names}}\t{{.Status}}' | while IFS= read -r line; do
   echo "docker=$line"
@@ -98,8 +100,7 @@ def probe(host: meta.Host, timeout: int = 45) -> HostStatus:
                 "bash -s",
             ],
             input=script.encode(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             timeout=timeout,
         )
     except FileNotFoundError:

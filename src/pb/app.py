@@ -20,7 +20,7 @@ from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, VerticalScroll
-from textual.widgets import DataTable, Footer, Label, Static, TabbedContent, TabPane
+from textual.widgets import DataTable, Footer, Static, TabbedContent, TabPane
 
 from . import __version__, history, hoststatus, meta
 from .run import RunScreen
@@ -274,7 +274,9 @@ class PbApp(App[None]):
             self._apply_load, playbooks, roles, vaults, inventory, branch, dirty, changed, runs
         )
 
-    def _apply_load(self, playbooks, roles, vaults, inventory, branch, dirty, changed, runs) -> None:
+    def _apply_load(
+        self, playbooks, roles, vaults, inventory, branch, dirty, changed, runs
+    ) -> None:
         self.playbooks, self.roles, self.vaults = playbooks, roles, vaults
         self.inventory = inventory
         self.changed, self.runs = changed, runs
@@ -322,7 +324,9 @@ class PbApp(App[None]):
         for vault in vaults:
             vault_table.add_row(
                 Text(vault.group, style="bold"),
-                Text("encrypted", style="green") if vault.encrypted else Text("PLAINTEXT", style="bold red"),
+                Text("encrypted", style="green")
+                if vault.encrypted
+                else Text("PLAINTEXT", style="bold red"),
                 f"{vault.size}b",
                 Text(str(vault.path.relative_to(self.repo.root)), style="dim"),
                 key=vault.group,
@@ -1057,7 +1061,10 @@ class PbApp(App[None]):
             self.call_from_thread(
                 self.query_one("#doctor", DataTable).add_row,
                 Text(name, style="bold"),
-                Text(f"{mark[0]} {'ok' if ok else 'warn' if ok is None else 'fail'}", style=mark[1]),
+                Text(
+                    f"{mark[0]} {'ok' if ok else 'warn' if ok is None else 'fail'}",
+                    style=mark[1],
+                ),
                 Text(detail, style="dim"),
             )
 
@@ -1086,7 +1093,11 @@ class PbApp(App[None]):
                 add(f"vault {vault.group}", False, f"{rel} is NOT encrypted")
                 continue
             code, out = meta.capture(["ansible-vault", "view", rel], self.repo.root, timeout=30)
-            add(f"vault {vault.group}", code == 0, "decrypts cleanly" if code == 0 else out.strip()[:90])
+            add(
+                f"vault {vault.group}",
+                code == 0,
+                "decrypts cleanly" if code == 0 else out.strip()[:90],
+            )
 
         if self.inventory.error:
             add("inventory", False, self.inventory.error[:90])
@@ -1103,7 +1114,11 @@ class PbApp(App[None]):
             add(f"syntax {pb.name}", code == 0, "clean" if code == 0 else out.strip()[-140:])
 
         code, _ = meta.capture(["ansible-lint", "--version"], self.repo.root, timeout=30)
-        add("ansible-lint", code == 0 or None, "installed" if code == 0 else "not installed (optional)")
+        add(
+            "ansible-lint",
+            code == 0 or None,
+            "installed" if code == 0 else "not installed (optional)",
+        )
 
     # --- misc ---------------------------------------------------------------
 
