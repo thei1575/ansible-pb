@@ -199,6 +199,75 @@ with a non-empty string value. No such variable, no certificate row.
 The host is `localhost`, or has `ansible_connection: local`. There is no SSH
 round trip to make.
 
+## Plugins
+
+### A plugin is not there after I installed it
+
+Installing, updating, enabling and removing all take effect the next time pb
+starts — plugin code is imported once, at start-up. The
+[Plugins](../guide/plugins.md) tab says `• pending restart` for exactly this
+reason. Quit and start pb again.
+
+### A plugin will not load
+
+<kbd>8</kbd> then <kbd>o</kbd> shows the stage it failed at and the traceback.
+From a shell, without starting the TUI:
+
+```bash
+pb plugin doctor
+```
+
+Three failures account for most of it: a `pb-plugin.toml` pb cannot use, a
+module that raises on import, and a module that defines no `Plugin` subclass. A
+plugin declaring an `api` number this pb does not speak is refused outright
+rather than imported and failed halfway — `pb plugin doctor` prints the version
+this pb speaks.
+
+### Two plugins, and one of them never loads
+
+They declare the same `module`. Plugins share `sys.path`, so one would shadow
+the other; pb reports it instead of picking. One of them has to rename its
+module — see [the manifest](writing-plugins.md#the-manifest).
+
+### pb is misbehaving and a plugin might be why
+
+Start without any of them:
+
+```bash
+pb --no-plugins        # PB_NO_PLUGINS=1 does the same
+```
+
+Nothing is uninstalled. If the problem goes away, re-enable them one at a time
+with `pb plugin disable`/`enable`.
+
+A plugin whose *hook* raises does not need this: pb catches it, switches that
+plugin off for the rest of the session, removes its tabs, hands its replaced
+actions back to the built-ins, and reports it as a failed
+[Doctor](../guide/doctor.md) check. pb keeps running.
+
+### A key does something I did not expect
+
+A plugin can **replace** what one of pb's own keys does. The
+[key map](keys.md) reflects whatever is actually bound, and the detail pane on
+the Plugins tab lists the hooks each plugin implements. `pb --no-plugins`
+gives you the built-in behaviour to compare against.
+
+### `pb plugin update` threw away my edits
+
+pb owns the directories under its config directory and resets them on update.
+To work on a plugin, keep your own checkout and point pb at it — pb reads it in
+place and never touches it with git:
+
+```bash
+pb plugin link ~/src/pb-mine
+```
+
+### `pb plugin install` refuses without asking
+
+There is no terminal to ask in. Installing a plugin is a deliberate decision,
+so pb refuses rather than installing silently. Pass `-y` if you have already
+made it.
+
 ## Still stuck
 
 Open an issue with the template. Include:

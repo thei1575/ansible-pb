@@ -106,8 +106,8 @@ Before `activate()` runs, pb fills in `name`, `version`, `summary`, `root`
 
 | | |
 |---|---|
-| `self.launch(argv, label)` | run a command the way pb runs its own — full screen, streamed, recorded in history |
-| `self.notify(message, severity=…)` | a toast |
+| `self.launch(argv, label, mode="ad-hoc")` | run a command the way pb runs its own — full screen, streamed, recorded in history. `mode` is what the hooks see |
+| `self.notify(message, severity=…, timeout=5)` | a toast |
 | `self.view(title, body, lexer=None)` | pb's scrollable viewer |
 | `self.reload()` | re-read the repo and repaint every tab |
 | `self.base_action(name)` | the action you replaced, so you can wrap it |
@@ -277,7 +277,8 @@ def detail(self, pane: str, subject) -> Text | None:
 ```
 
 `pane` is one of `playbook`, `host`, `role`, `vault`, `status`, `history`, and
-`subject` is the object that pane is showing.
+`subject` is the object that pane is showing. A plain `str` is accepted too,
+here and in `status_bar()`.
 
 ### `status_bar()` — a segment on the top strip
 
@@ -352,7 +353,8 @@ pb plugin remove NAME                 uninstall
 pb plugin enable NAME
 pb plugin disable NAME
 pb plugin link [PATH] [--name NAME]   develop against a checkout, in place
-pb plugin new NAME [--dir DIR]        write a working plugin to start from
+pb plugin new NAME [--dir DIR] [--owner OWNER]
+                                      write a working plugin to start from
 pb plugin info NAME                   everything pb knows about one
 pb plugin doctor                      load them all and report the failures
 pb plugin path                        print the plugin directory

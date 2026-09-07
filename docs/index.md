@@ -28,7 +28,7 @@ cd ~/my-ansible-repo && pb
 <div class="pb-term-bar"><span></span><span></span><span></span><em>pb — Playbooks</em></div>
 
 ```{ .text .no-copy }
- Playbooks  Inventory  Status  Roles  Vault  History  Doctor
+ Playbooks  Inventory  Status  Roles  Vault  History  Doctor  Plugins
 ┌──────────────────────────────────────────┬─────────────────────────────────┐
 │ ● site.yml        Everything, in order   │ COMMAND                         │
 │   webservers.yml  nginx and certificates │ ansible-playbook                │
@@ -107,6 +107,17 @@ cd ~/my-ansible-repo && pb
 
     [:octicons-arrow-right-24: Vault](guide/vault.md)
 
+-   :material-puzzle-outline:{ .lg .middle } **Extend it, without forking it**
+
+    ---
+
+    pb is deliberately narrow. A plugin is a git repository pb clones and
+    imports at start-up: a tab of your own, extra keys, extra Doctor checks, or
+    a veto on a command before it runs. A broken one costs you that plugin,
+    never your console.
+
+    [:octicons-arrow-right-24: Plugins](guide/plugins.md)
+
 </div>
 
 ## What it does that a Makefile cannot
@@ -124,7 +135,7 @@ cd ~/my-ansible-repo && pb
     **It marks uncommitted work.** A yellow `●` on a playbook or role means its
     files differ from `HEAD`; <kbd>ctrl</kbd>+<kbd>g</kbd> shows the diff.
 
-## The seven tabs
+## The eight tabs
 
 | Tab | What it is for |
 |---|---|
@@ -135,6 +146,7 @@ cd ~/my-ansible-repo && pb
 | [Vault](guide/vault.md) | View, edit, create and rekey the per-group vaults |
 | [History](guide/history.md) | Every run pb has made, with its output kept |
 | [Doctor](guide/doctor.md) | Preflight over the whole repo |
+| [Plugins](guide/plugins.md) | Install, update and inspect the plugins that extend pb |
 
 ## Requirements
 
