@@ -58,6 +58,7 @@ packages = ["src/pb"]
 include = [
   "src/pb",
   "tests",
+  "docs",
   "README.md",
   "CHANGELOG.md",
   "LICENSE",

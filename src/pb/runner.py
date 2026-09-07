@@ -20,7 +20,7 @@ import signal
 import struct
 import subprocess
 import termios
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 # ansible prints a recap line per host: "web01 : ok=12 changed=3 ..."
@@ -43,16 +43,20 @@ def stream(
     cancelled: Callable[[], bool],
     cols: int = 120,
     rows: int = 50,
+    extra_env: Mapping[str, str] | None = None,
 ) -> int:
     """Run `argv`, calling `on_line` for each line of output. Returns the exit code.
 
     `cancelled` is polled a few times a second; when it turns true the child's
-    whole process group is terminated.
+    whole process group is terminated. `extra_env` is merged in last, so a
+    plugin may set ANSIBLE_* variables for this run — but not unset the pty
+    settings the reader below depends on.
     """
     master, slave = pty.openpty()
     _set_size(slave, cols, rows)
     env = {
         **os.environ,
+        **(extra_env or {}),
         "ANSIBLE_FORCE_COLOR": "1",
         "PY_COLORS": "1",
         "TERM": "xterm-256color",

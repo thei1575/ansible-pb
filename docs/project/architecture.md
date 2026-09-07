@@ -1,6 +1,6 @@
 # Architecture
 
-pb is about 2,900 lines of Python: one module per concern, and four invariants
+pb is about 5,900 lines of Python: one module per concern, and five invariants
 that decide what belongs in it.
 
 ## The invariants
@@ -42,18 +42,49 @@ inventory data has to run through `meta.redact()`.
 Inventory, Status, Roles and Doctor must not mutate a host or the repo. Only
 Playbooks and Vault write, and only through Ansible.
 
+### A plugin cannot take pb down { #a-plugin-cannot-take-pb-down }
+
+pb imports third-party code into its own process, which means the console's
+reliability would otherwise be the reliability of the least careful plugin
+installed.
+
+So every call into plugin code goes through `PluginHost`, which catches
+whatever comes out, switches that plugin off for the rest of the session,
+removes its tabs, hands any action it replaced back to the built-in, and turns
+the failure into a [Doctor](../guide/doctor.md) row. A plugin costs you that
+plugin, never your console.
+
+The other half of it is that the plugin surface is *versioned*.
+`pb.plugins.api` is what third-party code imports; adding an optional hook is
+free, and changing or removing one means bumping `API_VERSION`, which makes pb
+refuse every plugin written against the old number rather than importing it
+and failing somewhere in the middle. The manifest carries that number and is
+read before a single line of plugin code is imported.
+
 ## The modules
 
 ```
 src/pb/
-  app.py          the App, the tabs, and every key binding      (1298)
+  app.py          the App, the tabs, and every key binding      (1836)
   meta.py         read-only introspection of the Ansible repo    (579)
-  runner.py       running ansible on a pty and streaming it back (191)
-  widgets.py      the modal pickers, prompts and viewers         (185)
-  run.py          the full-screen run view                       (183)
-  pb.tcss         the stylesheet                                 (159)
-  history.py      the durable record under .pb/runs/             (129)
+  update.py       checking GitHub for a newer pb                 (342)
+  widgets.py      the modal pickers, prompts and viewers         (254)
+  run.py          the full-screen run view                       (208)
+  runner.py       running ansible on a pty and streaming it back (195)
+  pb.tcss         the stylesheet                                 (183)
   hoststatus.py   the read-only SSH health probe                 (130)
+  history.py      the durable record under .pb/runs/             (129)
+  config.py       where pb keeps what is not about the repo       (27)
+  plugins/        the plugin system                              (1691)
+    cli.py          `pb plugin …`                                (322)
+    host.py         binding plugins into the running app         (287)
+    api.py          what a plugin imports — the versioned surface (283)
+    scaffold.py     `pb plugin new`                              (256)
+    source.py       resolving owner/repo, and cloning it          (239)
+    loader.py       importing plugin code, failures contained     (216)
+    manage.py       install, update, link, remove                 (215)
+    store.py        what is installed, and where                  (153)
+    manifest.py     pb-plugin.toml, read before any plugin code   (139)
 ```
 
 ### `meta.py` — what pb knows
@@ -118,7 +149,7 @@ only ever reads. See [Status](../guide/status.md).
 
 ### `app.py` — the tabs
 
-The `App`, the seven tabs, and every binding.
+The `App`, the eight tabs, and every binding.
 
 Two structural things:
 
@@ -131,6 +162,30 @@ bubble on its own.
 **A `TabPane` only stays active while focus is inside it.** A focused widget in
 another pane posts `TabPane.Focused` and yanks the tab back, so switching tabs
 has to move focus into the new pane, which is what `_focus_pane` is for.
+
+### `plugins/` — the extension points
+
+`api.py` is the whole third-party surface: the `Plugin` base class whose every
+method is optional, and the dataclasses for what a plugin contributes. Nothing
+else in the package is something a plugin imports.
+
+`host.py` is the only module that knows both sides. It takes what a plugin
+contributes and puts it into the widget tree — panes through
+`TabbedContent.add_pane`, keys through the target widget's own `BindingsMap`,
+and actions by setting `action_<name>` on the app instance, which is exactly
+how Textual dispatches them. That last one is why replacing a built-in needed
+no per-action plumbing, and why `base_action()` can hand back what was there
+before.
+
+Installing and importing are kept apart on purpose. `manage.py` and
+`source.py` clone and record; `loader.py` imports. Nothing a plugin ships runs
+at install time, and the manifest — including its API version — is read before
+any of its code is.
+
+One ordering detail worth knowing: `before_run` hooks fire in
+`_authorize`, *before* the apply confirmation is built, so a plugin that
+rewrites `argv` cannot leave the user approving a different command. The rule
+that pb only runs what it has shown you survives plugins.
 
 ## The test suite
 
@@ -148,10 +203,27 @@ CI can run it on four interpreters in under a minute.
 | `test_hoststatus.py` | the probe's accessors |
 | `test_history.py` | the run record |
 | `test_cli.py` | argument handling and the exit codes |
+| `test_update.py` | version comparison, the GitHub calls, the upgrade command |
+| `test_app_update.py` | the update prompt, and skipping a version |
+| `test_plugin_manifest.py` | `pb-plugin.toml`, and everything it refuses |
+| `test_plugin_store.py` | the state file, including it being corrupt |
+| `test_plugin_install.py` | source resolution, install, update, pin, link, remove |
+| `test_plugin_loader.py` | importing plugin code, and every way it can fail |
+| `test_plugin_app.py` | plugins in a real headless app |
+| `test_plugin_cli.py` | `pb plugin …` and its refusals |
 
 Use the `repo` fixture rather than mocking `Path`. `Repo.discover` reads
 `$ANSIBLE_INVENTORY`, so an autouse fixture clears it — a developer who has it
-exported must not get different results from CI.
+exported must not get different results from CI. Another points `$PB_HOME` at
+`tmp_path`, so nothing pb writes outside the repo — the update state, the
+installed plugins — ever touches the config of whoever is running the tests.
+
+Two things need more than a fixture repository. Installing a plugin "from
+GitHub" is cloning a git URL, and a local repository is such a URL, so
+`plugin_git_repo` builds one and the install, update and pin paths run end to
+end with no network. And `test_plugin_app.py` drives a real Textual app in
+headless mode, because a tab that never mounted and a key that never bound are
+failures no unit test can see.
 
 ## Wanting to change something
 

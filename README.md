@@ -96,8 +96,8 @@ came from, which is the quickest way to check pb and Ansible agree.
 
 Press `?` inside for the full key map. The full documentation is at
 **[thei1575.github.io/ansible-pb](https://thei1575.github.io/ansible-pb/)** —
-a page per tab, the inventory resolution rules, and everything pb touches on
-your machine and your hosts.
+a page per tab, the inventory resolution rules, how to write a plugin, and
+everything pb touches on your machine and your hosts.
 
 | Tab | What it is for |
 |---|---|
@@ -108,6 +108,7 @@ your machine and your hosts.
 | Vault | View, edit, create and rekey the per-group vaults |
 | History | Every run pb has made, with its output kept |
 | Doctor | Preflight over the whole repo |
+| Plugins | Install, update and disable plugins from GitHub |
 
 ## What it does that a Makefile cannot
 
@@ -122,6 +123,42 @@ your machine and your hosts.
 
 The pane on the right always shows the exact `ansible-playbook` command your
 current options produce, so nothing runs that you have not read first.
+
+## Plugins
+
+pb has a plugin system, so the things only your infrastructure cares about do
+not have to live in pb. A plugin is a git repository pb clones and imports at
+start-up; it can add a tab, add keys to an existing tab, add Doctor checks,
+react to every run — or replace what one of pb's own keys does.
+
+```bash
+pb plugin install owner/pb-terraform     # from GitHub
+pb plugin install owner/pb-thing@v1.2    # pinned to a tag
+pb plugin list
+pb plugin disable pb-thing
+```
+
+Press `8` inside pb for the same thing: install, update, enable and remove,
+with what each one adds and which commit it is on.
+
+Writing one is a scaffold and a restart:
+
+```bash
+pb plugin new pb-mine     # a working plugin, in a git repo
+pb plugin link .          # pb reads your checkout in place
+pb plugin doctor          # does it parse? does it import?
+```
+
+[Writing a plugin](https://thei1575.github.io/ansible-pb/reference/writing-plugins/)
+is the authoring guide: every hook, with an example, and how to publish to
+GitHub.
+
+A plugin is Python running inside pb with your permissions — there is no
+sandbox. Installing asks first and shows what it is about to clone; every
+install records the exact commit; nothing a plugin ships runs until pb next
+starts. A plugin that raises is switched off for the session and reported on
+the Doctor tab rather than taking pb down with it. `pb --no-plugins` starts
+without any of them.
 
 ## Secrets
 
@@ -163,6 +200,17 @@ src/pb/            the package — one module per concern
   update.py        the release check and the command that installs one
   widgets.py       the modal pickers, prompts and viewers
   pb.tcss          the stylesheet
+  plugins/         the plugin system
+    api.py         what a plugin imports — the versioned surface
+    manifest.py    pb-plugin.toml, read before any plugin code
+    store.py       what is installed, under ~/.config/pb
+    source.py      resolving owner/repo and cloning it
+    manage.py      install, update, link, remove
+    loader.py      importing plugin code, with the failures contained
+    host.py        binding plugins into the running app
+    cli.py         `pb plugin …`
+    scaffold.py    `pb plugin new`
+  config.py        where pb keeps what is not about the repo
 tests/             pytest, against a fixture Ansible repo in tmp_path
 docs/              the documentation site (Material for MkDocs)
 .github/           CI, issue and pull-request templates, and the

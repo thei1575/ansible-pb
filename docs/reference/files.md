@@ -57,11 +57,15 @@ removes it — whether or not the encryption succeeded.
 
 ## Writes, in your home directory
 
+Everything pb keeps between runs lives in one directory: `$PB_HOME` if you set
+it, else `$XDG_CONFIG_HOME/pb`, else `~/.config/pb`. Nothing in it is about
+your repository — it is all about your machine, which is why it is not in the
+repo.
+
 ### `~/.config/pb/update.json`
 
-The only file pb writes outside the repository, and the only state it keeps
-between runs. Two keys, both about the [update check](updates.md) and neither
-about your repository:
+The only state pb keeps between runs that it wrote by itself. Two keys, both
+about the [update check](updates.md) and neither about your repository:
 
 ```json
 {
@@ -75,14 +79,41 @@ about your repository:
 file and pb checks on the next start and offers whatever it finds; a failure to
 write it is swallowed, the same as a run record.
 
-`$XDG_CONFIG_HOME` is honoured when set.
+### `~/.config/pb/plugins.json`
+
+The record of which [plugins](../guide/plugins.md) are installed — for each
+one, what you typed to install it, the git URL that resolved to, the ref and
+the exact commit checked out, and whether it is enabled.
+
+This file is the source of truth, not the directory beside it: a plugin
+directory pb has no record of is ignored, so an install that failed halfway
+cannot come back to life on the next start. It is written to a temporary file
+and renamed, so an interrupted write cannot leave pb with a truncated list of
+what is installed.
+
+### `~/.config/pb/plugins/<name>/`
+
+One git clone per installed plugin. **pb owns these directories**: `pb plugin
+update` fetches and resets, which discards anything you edited in them. To
+work on a plugin, keep your own checkout and `pb plugin link` it — pb then
+reads it where it lies and never touches it with git.
+
+Nothing here is executed at install time. It is imported the next time pb
+starts, and only while the plugin is enabled.
+
+### `~/.config/pb/state/<name>/`
+
+Created only if a plugin asks for it. Each plugin gets its own directory to
+keep whatever it needs between runs; pb creates the path and never reads or
+writes inside it.
 
 ## What pb never writes
 
 - An encrypted file, except by invoking `ansible-vault` itself.
 - Anything under `playbooks/`, `roles/`, or the inventory.
-- Anything outside the repository root and `~/.config/pb/`, other than what
-  Ansible and your editor do on their own.
+- Anything outside the repository root and pb's config directory, other than
+  what Ansible, `git`, an installer you accepted, a plugin you installed, and
+  your editor do on their own.
 - A cache of anything it read from your repository.
 
 ## On your hosts
@@ -108,9 +139,14 @@ dpkg lock. See [Status](../guide/status.md).
 
 ## Network
 
-pb makes **no network connections of its own**. No telemetry, no update check,
-no outbound anything. The only traffic is Ansible's and SSH's, on your
-credentials.
+pb makes **one network connection of its own**: the [update
+check](updates.md), at most once a day, unauthenticated and carrying nothing
+but a `pb/<version>` User-Agent. `--no-update-check` stops it.
+
+Everything else happens because you asked for it: Ansible's and SSH's traffic
+on your credentials, `git` when you install or update a
+[plugin](../guide/plugins.md), and the installer when you accept an update. No
+telemetry, and nothing about you, your repo or your hosts leaves the machine.
 
 ## Processes pb spawns
 
@@ -133,6 +169,9 @@ The complete list of external commands, so you can audit it against your own
 | `ansible-lint --version` | Doctor — the version only; pb never lints |
 | `ssh` | the Status probe, and <kbd>s</kbd> in Inventory and Status |
 | `git status`, `git diff`, `git rev-parse` | the `●` marker, the changes viewer, the commit per run |
+| `git clone`, `git fetch`, `git checkout`, `git reset` | installing and updating a [plugin](../guide/plugins.md) |
+| `git init` | `pb plugin new`, so what it wrote is a repository |
+| `uv tool install`, `pipx install`, `pip install` | only after you accept an [update](updates.md) |
 
 Runs get a pty and their own process group, so cancelling with
 <kbd>ctrl</kbd>+<kbd>c</kbd> kills the forks Ansible spawned and not just

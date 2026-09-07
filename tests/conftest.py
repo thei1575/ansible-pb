@@ -87,12 +87,22 @@ def _no_ambient_inventory(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture(autouse=True)
-def _no_ambient_update_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The update check reads $XDG_CONFIG_HOME and $PB_NO_UPDATE_CHECK, and
-    writes under the first. Point it at tmp_path so a test never reads or
-    overwrites the developer's own `~/.config/pb/update.json`."""
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+def pb_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Everything pb writes outside the repo, redirected into tmp_path.
+
+    `config_dir()` is one directory holding both what the update check
+    remembers and which plugins are installed, and `$PB_HOME` moves all of it.
+    A test must never read — still less install into, or overwrite a skipped
+    version in — the config of whoever is running it. The two off switches go
+    with it, so a developer who has either exported does not get different
+    results from CI.
+    """
+    home = tmp_path / "pb-home"
+    monkeypatch.setenv("PB_HOME", str(home))
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
     monkeypatch.delenv("PB_NO_UPDATE_CHECK", raising=False)
+    monkeypatch.delenv("PB_NO_PLUGINS", raising=False)
+    return home
 
 
 def _write(path: Path, text: str) -> Path:
@@ -177,3 +187,178 @@ def _have(binary: str) -> bool:
     from shutil import which
 
     return which(binary) is not None
+
+
+# --- plugins ---------------------------------------------------------
+#
+# The store lives under `pb_home` above, so every test gets one of its own.
+
+
+@pytest.fixture
+def store(pb_home: Path):
+    from pb.plugins.store import Store
+
+    return Store()
+
+
+# A plugin with one of every hook, written so a test can see each of them fire
+# by looking at `pb_probe.EVENTS` in the module it imports.
+PROBE_PLUGIN = '''\
+"""A plugin that records what pb asked it to do."""
+
+from rich.text import Text
+from textual.widgets import DataTable
+
+from pb.plugins import CheckResult, Command, KeySpec, Plugin, TabSpec
+
+EVENTS = []
+
+
+class Probe(Plugin):
+    def tabs(self):
+        yield TabSpec(
+            id="tab-probe",
+            title="Probe",
+            factory=lambda: DataTable(id="probe-table"),
+            focus="#probe-table",
+        )
+
+    def keys(self):
+        yield KeySpec(target="playbooks", key="ctrl+b", action="app.probe_shout")
+        yield KeySpec(target="app", key="ctrl+j", action="app.probe_shout", show=False)
+
+    def actions(self):
+        return {"probe_shout": self.shout, "help": self.instead_of_help}
+
+    def commands(self):
+        yield Command(title="Shout", callback=self.shout)
+
+    def shout(self):
+        EVENTS.append("shout")
+
+    def instead_of_help(self):
+        EVENTS.append("help")
+        base = self.base_action("help")
+        EVENTS.append("base-help" if base is not None else "no-base")
+
+    def activate(self):
+        EVENTS.append("activate")
+        self.app.query_one("#probe-table", DataTable).add_columns("Playbook")
+
+    def reloaded(self):
+        EVENTS.append("reloaded")
+        table = self.app.query_one("#probe-table", DataTable)
+        table.clear()
+        for playbook in self.playbooks:
+            table.add_row(playbook.name)
+
+    def doctor(self):
+        yield CheckResult("probe check", True, "fine")
+
+    def before_run(self, request):
+        EVENTS.append(f"before:{request.mode}")
+        request.argv = [*request.argv, "--probed"]
+        request.env["PROBE"] = "1"
+
+    def after_run(self, result):
+        EVENTS.append(f"after:{result.exit_code}")
+
+    def detail(self, pane, subject):
+        if pane == "playbook":
+            return Text("\\nprobe was here\\n")
+        return None
+
+    def status_bar(self):
+        return Text("  probe")
+'''
+
+MANIFEST = """\
+[plugin]
+name = "{name}"
+version = "{version}"
+summary = "{summary}"
+api = 1
+module = "{module}"
+"""
+
+
+@pytest.fixture
+def make_plugin(tmp_path: Path):
+    """Write a plugin directory and hand back its path."""
+
+    def build(
+        name: str = "pb-probe",
+        body: str = PROBE_PLUGIN,
+        module: str = "",
+        version: str = "1.0",
+        summary: str = "a test plugin",
+        manifest: str | None = None,
+        where: Path | None = None,
+    ) -> Path:
+        module = module or name.replace("-", "_").replace(".", "_")
+        root = (where or tmp_path / "plugins") / name
+        text = (
+            manifest
+            if manifest is not None
+            else MANIFEST.format(name=name, version=version, summary=summary, module=module)
+        )
+        _write(root / "pb-plugin.toml", text)
+        _write(root / f"{module}.py", body)
+        return root
+
+    return build
+
+
+@pytest.fixture
+def linked_plugin(store, make_plugin):
+    """A plugin registered in place, the way `pb plugin link` does it."""
+    from pb.plugins import manage
+
+    def build(**kwargs) -> Path:
+        root = make_plugin(**kwargs)
+        manage.link(store, root)
+        return root
+
+    return build
+
+
+@pytest.fixture
+def plugin_git_repo(make_plugin):
+    """A plugin in a git repository, for the install and update paths.
+
+    A local repository is a git URL like any other, so the install path is
+    exercised end to end without a network.
+    """
+    if not _have("git"):
+        pytest.skip("git not on PATH")
+
+    def build(name: str = "pb-probe", **kwargs) -> Path:
+        root = make_plugin(name=name, **kwargs)
+        _git(root, "init", "-q", "-b", "main")
+        _git(root, "add", "-A")
+        _git(root, "commit", "-qm", "Initial")
+        return root
+
+    return build
+
+
+def _git(cwd: Path, *argv: str) -> str:
+    env = {
+        **_base_env(),
+        "GIT_AUTHOR_NAME": "Test",
+        "GIT_AUTHOR_EMAIL": "test@example.invalid",
+        "GIT_COMMITTER_NAME": "Test",
+        "GIT_COMMITTER_EMAIL": "test@example.invalid",
+    }
+    done = subprocess.run(
+        ["git", *argv], cwd=cwd, check=True, capture_output=True, env=env, text=True
+    )
+    return done.stdout
+
+
+@pytest.fixture
+def git():
+    """Run git in a directory, for tests that need a second commit."""
+    if not _have("git"):
+        pytest.skip("git not on PATH")
+    return _git

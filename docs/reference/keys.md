@@ -10,12 +10,12 @@ across tabs on purpose.
 
 | Key | Does |
 |---|---|
-| <kbd>1</kbd> … <kbd>7</kbd> | Jump to a tab |
+| <kbd>1</kbd> … <kbd>8</kbd> | Jump to a tab |
 | <kbd>?</kbd> | This help, inside pb |
 | <kbd>ctrl</kbd>+<kbd>r</kbd> | Reload everything from disk |
 | <kbd>ctrl</kbd>+<kbd>g</kbd> | The working-tree diff — `git status` plus the diff |
 | <kbd>ctrl</kbd>+<kbd>u</kbd> | Check for a newer pb — see [Updating](updates.md) |
-| <kbd>ctrl</kbd>+<kbd>p</kbd> | Command palette |
+| <kbd>ctrl</kbd>+<kbd>p</kbd> | Command palette — [plugins](../guide/plugins.md) can add to it |
 | <kbd>q</kbd> | Quit — refused while a run that changes something is going |
 
 </div>
@@ -117,6 +117,28 @@ credential is masked until you ask. See
 | <kbd>r</kbd> | Re-run the checks |
 
 </div>
+
+## Plugins &nbsp;<kbd>8</kbd>
+
+<div class="pb-keys" markdown>
+
+| Key | Does |
+|---|---|
+| <kbd>i</kbd> | Install one from GitHub — asks before it clones |
+| <kbd>u</kbd> | Update the selected plugin |
+| <kbd>e</kbd> | Enable or disable it |
+| <kbd>r</kbd> | Remove it |
+| <kbd>o</kbd> | Everything pb knows about it, including a load failure |
+
+</div>
+
+Installing, enabling and removing take effect the next time pb starts. See
+[Plugins](../guide/plugins.md).
+
+A plugin can bind keys of its own, on its own tab or on one of the tabs above,
+and can replace what a key already listed here does. The footer is built from
+whatever is actually bound, so it stays the truth — and `pb --no-plugins`
+gives you exactly the map on this page.
 
 ## While a run is on screen
 

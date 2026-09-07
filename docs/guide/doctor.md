@@ -112,6 +112,22 @@ Whether `ansible-lint` is installed. **ok** if it is, **warn** with
 `not installed (optional)` if not. pb does not invoke it — this is
 informational.
 
+### `plugin <name>`
+
+One row per [plugin](plugins.md) that failed to load, naming the stage it
+failed at — a manifest pb cannot use, a module that raises on import, a plugin
+declaring no `Plugin` subclass — and **fail** for each. A plugin whose hook
+raised while pb was running is here too, switched off for the session.
+
+Nothing appears here when every installed plugin loaded, or when you started
+pb with `--no-plugins`.
+
+### Anything a plugin adds
+
+A plugin can contribute its own checks, and they come last. They report the
+same **ok** / **warn** / **fail** as the built-in ones, and run in a worker
+thread, so a plugin's check may shell out without freezing the tab.
+
 ## Reading it
 
 The checks are ordered so that a failure high up explains the failures below it.
@@ -126,4 +142,6 @@ If Doctor is clean and something still misbehaves, see
 
     Every check is an observation. Nothing here changes your repository, your
     vaults or your hosts — `ansible-playbook` is only ever invoked with
-    `--syntax-check`, and `ansible-vault` only with `view`.
+    `--syntax-check`, and `ansible-vault` only with `view`. A plugin's own
+    checks are the one part pb cannot promise that for; a plugin runs with
+    your permissions, as [Plugins](plugins.md) explains.

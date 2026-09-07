@@ -29,6 +29,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from . import __version__
+from .config import config_dir
 
 REPO = "thei1575/ansible-pb"
 GIT_URL = f"git+https://github.com/{REPO}"
@@ -188,13 +189,12 @@ def release_notes(release: Release, current: str, timeout: float = TIMEOUT) -> s
 
 
 def state_path() -> Path:
-    """`~/.config/pb/update.json`, honouring $XDG_CONFIG_HOME.
+    """`~/.config/pb/update.json`, wherever `config_dir()` puts that.
 
     Deliberately outside the Ansible repo: which version you skipped is about
     your machine, not about the repo you happen to be pointing pb at.
     """
-    base = os.environ.get("XDG_CONFIG_HOME") or "~/.config"
-    return Path(base).expanduser() / "pb" / "update.json"
+    return config_dir() / "update.json"
 
 
 def load_state() -> dict:

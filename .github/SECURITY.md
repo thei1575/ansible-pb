@@ -50,6 +50,17 @@ worth knowing:
   by invoking `ansible-vault` itself. It reads your vault password from the
   repo's `.vault_pass` the same way Ansible does — keep that file `0600` and
   gitignored. pb never stores or transmits it.
+* **A plugin is code you chose to run inside pb.** Plugins are Python imported
+  into pb's own process, with your permissions and no sandbox: a plugin can
+  read your repo and your `.vault_pass`, change the `ansible` commands pb
+  builds, and replace what any key does. pb does what it can to keep that
+  deliberate — installing asks for confirmation and prints the URL it is about
+  to clone (and refuses rather than installing silently when there is no
+  terminal to ask in), nothing a plugin ships runs at install time, and every
+  install records the exact commit, which `pb plugin info` shows. But
+  installing a plugin is a decision to trust its author, the same as running a
+  script they sent you. `pb plugin disable <name>` stops loading one, and
+  `pb --no-plugins` starts pb with none.
 * **pb makes exactly one network connection of its own: the update check.**
   Once a day at startup it GETs the release list of its own repository from
   `api.github.com`, and — only when there is a newer version — its `CHANGELOG.md`
@@ -61,8 +72,8 @@ worth knowing:
   `PB_NO_UPDATE_CHECK=1`, stops it; `ctrl+u` then checks only when you ask.
   Accepting an update runs an installer (`uv tool install`, `pipx install` or
   `pip install`) against a tag of that same repository — pb shows you the whole
-  command first and runs nothing else. Everything else pb sends is Ansible's and
-  SSH's.
+  command first and runs nothing else. Everything else pb sends is Ansible's,
+  SSH's, and `git`'s when you ask pb to install or update a plugin.
 
 ## Out of scope
 
@@ -70,5 +81,9 @@ worth knowing:
   your repo and your vault password. The mask guards against shoulder-surfing
   and screen-sharing, nothing more.
 * Anything Ansible itself does with a playbook you chose to run.
+* Anything a plugin you chose to install does. pb contains a plugin's
+  *mistakes* — an exception in a hook switches that plugin off and is reported
+  on the Doctor tab — but not its intentions. There is no sandbox and none is
+  claimed.
 * Local file permissions on `.vault_pass` or `.pb/` — pb honours your umask;
   setting them correctly is yours.

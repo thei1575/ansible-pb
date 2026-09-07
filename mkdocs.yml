@@ -134,10 +134,12 @@ nav:
       - Vault: guide/vault.md
       - History: guide/history.md
       - Doctor: guide/doctor.md
+      - Plugins: guide/plugins.md
   - Reference:
       - Command line: reference/cli.md
       - Key map: reference/keys.md
       - Updating: reference/updates.md
+      - Writing a plugin: reference/writing-plugins.md
       - Inventory resolution: reference/inventory-resolution.md
       - Files pb touches: reference/files.md
       - Troubleshooting: reference/troubleshooting.md

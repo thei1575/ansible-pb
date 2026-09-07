@@ -9,6 +9,37 @@ Before then, minor versions may break things.
 
 ### Added
 
+* **A plugin system.** pb can install plugins from GitHub and load them at
+  start-up, so the things only your infrastructure cares about no longer have
+  to live in pb.
+
+  ```bash
+  pb plugin install owner/pb-terraform     # or owner/repo@v1.2, or any git URL
+  pb plugin new pb-mine                    # a working plugin, in a git repo
+  pb plugin link .                         # develop against your own checkout
+  pb plugin doctor                         # does it parse? does it import?
+  ```
+
+  A plugin is a git repository with a `pb-plugin.toml` and a module defining a
+  `Plugin` subclass. It can add a tab, add keys to a tab pb already has, add
+  Doctor checks and command-palette entries, edit or veto a command before it
+  runs, react to a finished run, append to any detail pane and the status
+  strip — or **replace** one of pb's own actions, with `base_action()` to wrap
+  the built-in rather than lose it. The site documents every hook under Reference → Writing a plugin.
+
+  A new Plugins tab (`8`) installs, updates, enables and removes them, and
+  shows what each one adds and which commit it is on. Installing, enabling and
+  removing take effect the next time pb starts: plugin code is imported once,
+  and pb does not pretend to swap it under a live UI.
+
+  A plugin runs inside pb with your permissions and there is no sandbox, so
+  installing asks for confirmation and prints what it is about to clone,
+  refuses to install silently when there is no terminal to ask in, records the
+  exact commit, and runs nothing a plugin ships until pb next starts. A plugin
+  that raises is switched off for the session, has its tabs removed, and
+  becomes a failed check on the Doctor tab — pb keeps running.
+  `pb --no-plugins` (or `PB_NO_PLUGINS=1`) starts with none of them.
+
 * **pb tells you when there is a newer pb.** Once a day at startup it asks
   GitHub for the latest release, and if there is one it shows the changelog
   entries between the version you are running and that one, along with the
@@ -45,11 +76,12 @@ Before then, minor versions may break things.
   setting intact.
 * Doctor names the inventory pb settled on, where that came from, and whether
   it exists.
-* A test suite (`tests/`, 221 tests) covering inventory resolution, repo
+* A test suite (`tests/`, 366 tests) covering inventory resolution, repo
   discovery, playbook, role and vault parsing, recap parsing, the pty streamer,
-  secret redaction, the SSH probe's accessors, the CLI and the run history —
-  the update check and the prompt it puts on screen — all against a fixture
-  Ansible repo built in `tmp_path`. No `ansible` binary, no network.
+  secret redaction, the SSH probe's accessors, the CLI, the run history, the
+  update check and the prompt it puts on screen, and the plugin system end to
+  end — all against a fixture Ansible repo built in `tmp_path`. No `ansible`
+  binary, no network.
 * GitHub Actions CI: `ruff check` plus the tests on Python 3.11, 3.12 and 3.13,
   once more on macOS for the pty handling, and a job that builds the sdist and
   wheel, installs the wheel clean and checks `pb --version` and that `pb.tcss`
@@ -70,6 +102,15 @@ Before then, minor versions may break things.
 * `.editorconfig`, a Dependabot schedule, and `dev` and `docs` dependency
   groups so `uv sync` gets ruff and pytest and
   `uv run --group docs mkdocs serve` gets the site.
+
+### Changed
+
+* **Everything pb keeps outside your repo now lives in one directory**, found
+  the same way for all of it: `$PB_HOME` if you set it, else
+  `$XDG_CONFIG_HOME/pb`, else `~/.config/pb`. The update check and the plugin
+  store arrived separately and each had its own idea of where that was;
+  `$PB_HOME` had moved one and not the other. `config_dir()` is now the single
+  rule, so setting it moves the lot.
 
 ### Fixed
 

@@ -3,8 +3,14 @@
 pb's command line is small on purpose: everything else is a keypress inside.
 
 ```
-usage: pb [-h] [-i PATH] [--no-update-check] [--version] [path]
+usage: pb [-h] [-i PATH] [--no-plugins] [--no-update-check] [--version] [path]
+       pb plugin COMMAND ...
 ```
+
+`pb plugin` is a different program: it installs and inspects
+[plugins](../guide/plugins.md) and never opens the console. It is dispatched
+before the arguments below are parsed, so `pb plugin list` is never mistaken
+for a repository path called `plugin`.
 
 ## Arguments
 
@@ -39,6 +45,15 @@ what pb shows you is what Ansible will use.
 
 Without it, pb resolves the inventory the way Ansible does. See
 [Inventory resolution](inventory-resolution.md).
+
+### `--no-plugins`
+
+Starts pb without loading any [plugin](../guide/plugins.md).
+`PB_NO_PLUGINS=1` does the same for every invocation.
+
+Nothing is uninstalled: the Plugins tab still lists what you have, and says it
+is off because of the flag. This is the first thing to try when pb misbehaves
+and you are not sure whether a plugin is the cause.
 
 ### `--no-update-check`
 
@@ -89,7 +104,9 @@ it spawns.
 | `ANSIBLE_INVENTORY` | Second in the inventory precedence, after `-i`. A comma-separated list is accepted; pb shows the first source and leaves the whole list to Ansible |
 | `EDITOR` | Used by `ansible-vault edit` from the [Vault](../guide/vault.md) tab — pb does not read it directly, Ansible does |
 | `PB_NO_UPDATE_CHECK` | Anything but empty, `0`, `false` or `no` turns the startup [update check](updates.md) off |
-| `XDG_CONFIG_HOME` | Where `pb/update.json` lives. Defaults to `~/.config` |
+| `PB_NO_PLUGINS` | Set to anything non-empty to start without loading any [plugin](../guide/plugins.md) |
+| `PB_HOME` | pb's whole config directory — the update state and the installed plugins. Overrides `XDG_CONFIG_HOME` |
+| `XDG_CONFIG_HOME` | Where that directory lives when `PB_HOME` is unset: `$XDG_CONFIG_HOME/pb`, defaulting to `~/.config/pb` |
 
 ### Set for Ansible
 
@@ -105,6 +122,32 @@ Every run pb launches gets these on top of your environment:
 
 Anything else in your environment is passed through untouched — your
 `ANSIBLE_CONFIG`, your `SSH_AUTH_SOCK`, your `ANSIBLE_VAULT_PASSWORD_FILE`.
+
+## `pb plugin`
+
+```
+pb plugin list [--paths]              what is installed, and from where
+pb plugin install SOURCE [--ref REF] [--name NAME] [--force] [-y]
+pb plugin update [NAME...]            fetch newer commits (default: all)
+pb plugin remove NAME                 uninstall
+pb plugin enable NAME
+pb plugin disable NAME
+pb plugin link [PATH] [--name NAME]   develop against a checkout, in place
+pb plugin new NAME [--dir DIR]        write a working plugin to start from
+pb plugin info NAME                   everything pb knows about one
+pb plugin doctor                      load them all and report the failures
+pb plugin path                        print the plugin directory
+```
+
+`install` asks for confirmation and prints the URL it is about to clone.
+`--yes` skips the prompt; with no terminal to ask in it refuses rather than
+installing silently. `install`, `remove`, `enable` and `disable` return `1`
+when they could not do what was asked, and `doctor` returns `1` when any
+installed plugin failed to load.
+
+`pb plugin --help`, and `--help` after any of those, prints the same.
+[Plugins](../guide/plugins.md) covers using them and
+[Writing a plugin](writing-plugins.md) covers making one.
 
 ## Running as a module
 

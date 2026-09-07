@@ -181,7 +181,16 @@ def test_a_body_that_is_not_json_is_not_a_release(monkeypatch: pytest.MonkeyPatc
 # --- state -----------------------------------------------------------
 
 
-def test_the_state_file_lives_under_xdg_config_home(tmp_path: Path) -> None:
+def test_the_state_file_lives_in_pbs_config_directory(tmp_path: Path) -> None:
+    """The same directory the plugin store uses — one place, one rule."""
+    assert update.state_path() == tmp_path / "pb-home" / "update.json"
+
+
+def test_the_state_file_falls_back_to_xdg_config_home(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("PB_HOME", raising=False)
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     assert update.state_path() == tmp_path / "config" / "pb" / "update.json"
 
 
