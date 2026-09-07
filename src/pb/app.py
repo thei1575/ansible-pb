@@ -178,9 +178,9 @@ class PbApp(App[None]):
         Binding("7", "tab('tab-doctor')", "", show=False),
     ]
 
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, inventory: str | None = None) -> None:
         super().__init__()
-        self.repo = meta.Repo(root)
+        self.repo = meta.Repo.discover(root, inventory)
         self.options = RunOptions()
         self.playbooks: list[meta.Playbook] = []
         self.inventory = meta.Inventory()
@@ -343,6 +343,8 @@ class PbApp(App[None]):
         self._render_vault_detail()
         if inventory.error:
             self.notify(f"inventory: {inventory.error}", severity="error", timeout=10)
+        elif inventory.warning:
+            self.notify(f"inventory: {inventory.warning}", severity="warning", timeout=10)
 
     def _render_statusbar(self, branch: str, dirty: int) -> None:
         text = Text()
@@ -459,7 +461,10 @@ class PbApp(App[None]):
         host = self.host
         target = self.query_one("#host-detail", Static)
         if host is None:
-            target.update(Text(self.inventory.error or "no hosts", style="dim"))
+            why = self.inventory.error or self.inventory.warning or "no hosts"
+            target.update(
+                Text(f"{why}\n\n{self.repo.rel(self.repo.inventory)}\n", style="dim")
+            )
             return
         text = Text()
         text.append(f"{host.name}\n", style="bold bright_cyan")
@@ -667,7 +672,7 @@ class PbApp(App[None]):
     # --- building and launching commands ---------------------------------
 
     def _argv(self, pb: meta.Playbook, mode: str) -> list[str]:
-        argv = ["ansible-playbook", str(pb.path.relative_to(self.repo.root))]
+        argv = ["ansible-playbook", self.repo.rel(pb.path), *self.repo.inventory_args]
         if mode == "check":
             argv.append("--check")
         elif mode == "syntax":
@@ -1071,6 +1076,25 @@ class PbApp(App[None]):
         code, out = meta.capture(["ansible", "--version"], self.repo.root, timeout=30)
         add("ansible", code == 0, out.splitlines()[0] if out else "not found")
 
+        inv = self.repo.inventory
+        origin = meta.INVENTORY_ORIGINS.get(
+            self.repo.inventory_origin, self.repo.inventory_origin
+        )
+        add(
+            "inventory path",
+            inv.exists(),
+            f"{self.repo.rel(inv)} ({origin})"
+            + ("" if inv.exists() else " — does not exist"),
+        )
+
+        group_vars = self.repo.group_vars_dir
+        add(
+            "group_vars",
+            group_vars.is_dir() or None,
+            self.repo.rel(group_vars)
+            + ("" if group_vars.is_dir() else " — none beside the inventory"),
+        )
+
         pw = self.repo.vault_pass_file
         if pw.exists():
             mode = oct(pw.stat().st_mode & 0o777)
@@ -1101,6 +1125,8 @@ class PbApp(App[None]):
 
         if self.inventory.error:
             add("inventory", False, self.inventory.error[:90])
+        elif self.inventory.warning:
+            add("inventory", None, self.inventory.warning[:90])
         else:
             add(
                 "inventory",
@@ -1109,8 +1135,11 @@ class PbApp(App[None]):
             )
 
         for pb in self.playbooks:
-            rel = str(pb.path.relative_to(self.repo.root))
-            code, out = meta.capture(["ansible-playbook", rel, "--syntax-check"], self.repo.root)
+            rel = self.repo.rel(pb.path)
+            code, out = meta.capture(
+                ["ansible-playbook", rel, "--syntax-check", *self.repo.inventory_args],
+                self.repo.root,
+            )
             add(f"syntax {pb.name}", code == 0, "clean" if code == 0 else out.strip()[-140:])
 
         code, _ = meta.capture(["ansible-lint", "--version"], self.repo.root, timeout=30)
@@ -1239,6 +1268,13 @@ def main() -> int:
         nargs="?",
         help="a directory inside the Ansible repo (default: the working directory)",
     )
+    parser.add_argument(
+        "-i",
+        "--inventory",
+        metavar="PATH",
+        help="the inventory file or directory to read (default: whatever "
+        "ansible.cfg says, else the one pb can find in the repo)",
+    )
     parser.add_argument("--version", action="version", version=f"pb {__version__}")
     args = parser.parse_args()
 
@@ -1258,5 +1294,5 @@ def main() -> int:
         )
         return 2
 
-    PbApp(root).run()
+    PbApp(root, args.inventory).run()
     return 0

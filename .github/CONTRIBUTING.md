@@ -61,6 +61,10 @@ a fixture repo on disk, or not at all.
 the `repo` fixture rather than mocking `Path`. Tests must not need a network,
 an SSH key, or an `ansible` binary.
 
+`Repo.discover` reads `$ANSIBLE_INVENTORY`, so an autouse fixture clears it —
+a developer who has it exported must not get different results from CI. If you
+add anything else that reads the environment, clear it the same way.
+
 ## Commit messages
 
 Write the subject line as what the change does for the user, in the

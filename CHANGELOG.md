@@ -9,10 +9,26 @@ Before then, minor versions may break things.
 
 ### Added
 
-* A test suite (`tests/`, 93 tests) covering repo discovery, playbook, role and
-  vault parsing, the resolved inventory, recap parsing, the pty streamer,
-  secret redaction, the SSH probe's accessors and the run history — all against
-  a fixture Ansible repo built in `tmp_path`. No `ansible` binary, no network.
+* **The inventory path is no longer fixed at `inventories/production`.** pb
+  follows Ansible's own precedence — `-i/--inventory`, then
+  `$ANSIBLE_INVENTORY`, then `[defaults] inventory` in `ansible.cfg` — so a
+  repo where Ansible already works needs no configuring. Failing all three it
+  looks around: `inventories/<env>/` under any name, `inventory/`, or a
+  `hosts.yml`, `hosts.ini` or `inventory.yml` at the root. `group_vars` and the
+  vaults are then read from beside whichever inventory won, as Ansible resolves
+  them.
+* pb passes `-i` to `ansible-playbook` and `ansible-inventory` whenever the
+  path came from somewhere Ansible would not look itself, so the host list pb
+  shows before an apply is the one Ansible will use. When the path came from
+  `ansible.cfg` or the environment, pb passes nothing and leaves a multi-source
+  setting intact.
+* Doctor names the inventory pb settled on, where that came from, and whether
+  it exists.
+* A test suite (`tests/`, 132 tests) covering inventory resolution, repo
+  discovery, playbook, role and vault parsing, recap parsing, the pty streamer,
+  secret redaction, the SSH probe's accessors, the CLI and the run history —
+  all against a fixture Ansible repo built in `tmp_path`. No `ansible` binary,
+  no network.
 * GitHub Actions CI: `ruff check` plus the tests on Python 3.11, 3.12 and 3.13,
   once more on macOS for the pty handling, and a job that builds the sdist and
   wheel, installs the wheel clean and checks `pb --version` and that `pb.tcss`
@@ -26,6 +42,11 @@ Before then, minor versions may break things.
 
 ### Fixed
 
+* An inventory that made Ansible print a warning was reported as
+  "could not parse ansible-inventory output". `capture()` merges stderr into
+  stdout and `ansible-inventory` warns on stderr, so the JSON was never the
+  whole output. pb now finds the JSON, keeps the warning, and shows it — so
+  "no hosts" says why instead of looking like a pb bug.
 * `git_diff` built its separator with an f-string that had nothing to
   interpolate.
 * Dropped two unused imports (`textual.widgets.Label` in `app.py`,

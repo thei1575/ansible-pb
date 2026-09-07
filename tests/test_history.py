@@ -154,7 +154,7 @@ def test_record_returns_none_rather_than_raising_when_it_cannot_write(
     tmp_path: Path, monkeypatch
 ) -> None:
     """Losing history must never kill a run."""
-    repo = meta.Repo(root=tmp_path / "nope")
+    repo = meta.Repo.discover(tmp_path / "nope")
 
     def boom(*_args: object, **_kw: object) -> None:
         raise OSError("read-only file system")

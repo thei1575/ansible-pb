@@ -45,6 +45,20 @@ pb finds the repo by walking up from the working directory to the nearest
 pb ~/my-ansible-repo
 ```
 
+For the inventory, pb follows Ansible's own precedence — `-i`, then
+`$ANSIBLE_INVENTORY`, then `[defaults] inventory` in `ansible.cfg` — so if
+Ansible already works in your repo, pb reads the same inventory without being
+told. Failing all three it looks around for one, preferring
+`inventories/production`. To pick a different one for this session:
+
+```bash
+pb -i inventories/staging
+```
+
+`group_vars` is taken from beside whichever inventory won, the way Ansible
+resolves it. The Doctor tab names the inventory pb settled on and where that
+came from, which is the quickest way to check pb and Ansible agree.
+
 Press `?` inside for the full key map.
 
 | Tab | What it is for |
@@ -88,14 +102,15 @@ pb reads a conventional Ansible layout:
 ansible.cfg                          # marks the repo root
 playbooks/*.yml
 roles/<role>/{tasks,defaults}/
-inventories/production/hosts.yml
-inventories/production/group_vars/<group>/{main,vault}.yml
+<inventory>                          # see below
+<inventory>/group_vars/<group>/{main,vault}.yml
 .vault_pass                          # gitignored, 0600
 ```
 
-The inventory path is currently fixed at `inventories/production`. If your repo
-puts it elsewhere, that is the one thing to change — see `Repo` in
-[`src/pb/meta.py`](src/pb/meta.py).
+`playbooks/` and `roles/` are the two fixed names. The inventory is wherever
+your `ansible.cfg` says, or `-i` if you pass it; pb also recognises
+`inventories/<env>/`, `inventory/`, and a `hosts.yml`, `hosts.ini` or
+`inventory.yml` at the repo root.
 
 ## This repository
 

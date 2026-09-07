@@ -48,6 +48,29 @@ def test_a_directory_with_no_ansible_cfg_is_refused(
     assert str(tmp_path.resolve()) in err
 
 
+def test_the_inventory_flag_reaches_the_repo(repo_root: Path) -> None:
+    instance = app.PbApp(repo_root, "inventories/staging/hosts.yml")
+    assert instance.repo.inventory == repo_root / "inventories/staging/hosts.yml"
+    assert instance.repo.inventory_origin == "--inventory"
+    assert instance.repo.inventory_args == ["-i", "inventories/staging/hosts.yml"]
+
+
+def test_without_the_flag_the_app_takes_ansible_cfg_at_its_word(repo_root: Path) -> None:
+    instance = app.PbApp(repo_root)
+    assert instance.repo.inventory == repo_root / "inventories/production/hosts.yml"
+    assert instance.repo.inventory_origin == "ansible.cfg"
+
+
+def test_the_inventory_flag_is_documented_in_the_help(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr("sys.argv", ["pb", "--help"])
+    with pytest.raises(SystemExit):
+        app.main()
+    out = capsys.readouterr().out
+    assert "-i" in out and "--inventory" in out
+
+
 def test_the_stylesheet_ships_with_the_package() -> None:
     """A wheel without pb.tcss starts and then dies on first paint."""
     import importlib.resources as resources

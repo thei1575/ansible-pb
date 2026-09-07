@@ -7,6 +7,7 @@ callers run it in a worker thread, never on the UI thread.
 
 from __future__ import annotations
 
+import configparser
 import json
 import os
 import re
@@ -57,9 +58,133 @@ def find_root(start: Path | None = None) -> Path:
     return cur
 
 
+# Where pb looks for an inventory when nothing tells it: these directories
+# first, then these files at the repo root.
+INVENTORY_DIRS = ("inventories", "inventory")
+INVENTORY_FILES = (
+    "hosts.yml",
+    "hosts.yaml",
+    "hosts.ini",
+    "hosts",
+    "inventory.yml",
+    "inventory.yaml",
+    "inventory.ini",
+)
+
+# An `inventories/` holding several environments is ambiguous. Preferring these
+# names keeps pb pointed where it always was for repos laid out that way.
+INVENTORY_PREFERRED = ("production", "prod", "main", "default")
+
+# Not environments, even though they are directories under `inventories/`.
+INVENTORY_NOT_ENVS = ("group_vars", "host_vars")
+
+# The default of last resort, when the repo has nothing to find. Naming a path
+# that does not exist is more useful than naming none: Doctor says so.
+INVENTORY_DEFAULT = "inventories/production"
+
+
+def _find_inventory(root: Path) -> Path | None:
+    """Look around the repo for something that looks like an inventory.
+
+    A repo laid out as `inventories/<env>/` gets the environment directory
+    rather than its parent, because that is where group_vars lives — and
+    merging every environment into one view is never what you meant.
+    """
+    for name in INVENTORY_DIRS:
+        base = root / name
+        if not base.is_dir():
+            continue
+        envs = sorted(
+            p for p in base.iterdir() if p.is_dir() and p.name not in INVENTORY_NOT_ENVS
+        )
+        if not envs:
+            # A flat `inventories/` holding hosts.yml and group_vars/.
+            return base
+        for preferred in INVENTORY_PREFERRED:
+            for env in envs:
+                if env.name == preferred:
+                    return env
+        return envs[0]
+
+    for name in INVENTORY_FILES:
+        path = root / name
+        if path.is_file():
+            return path
+    return None
+
+# ansible resolves these two itself, so pb must not pass `-i` when the path
+# came from one of them — doing so would flatten a multi-source setting down
+# to its first entry.
+ANSIBLE_KNOWS = ("ansible.cfg", "ANSIBLE_INVENTORY")
+
+# Every origin `Repo.discover` can return, and how Doctor says it. Kept here so
+# the two cannot drift apart.
+INVENTORY_ORIGINS = {
+    "--inventory": "from -i",
+    "ANSIBLE_INVENTORY": "from $ANSIBLE_INVENTORY",
+    "ansible.cfg": "from ansible.cfg",
+    "found": "found in the repo",
+    "default": "pb's default — nothing named one",
+}
+
+
+def _first_source(value: str) -> str:
+    """ansible accepts a comma-separated list of inventory sources.
+
+    pb shows one inventory and derives group_vars from it, so it works off the
+    first. `inventory_args` is what keeps ansible seeing the whole list.
+    """
+    return next((part.strip() for part in value.split(",") if part.strip()), "")
+
+
+def _cfg_inventory(root: Path) -> str:
+    """The `[defaults] inventory` setting from the repo's ansible.cfg."""
+    parser = configparser.ConfigParser(interpolation=None, strict=False)
+    try:
+        parser.read(root / "ansible.cfg", encoding="utf-8")
+    except (OSError, configparser.Error):
+        return ""
+    return _first_source(parser.get("defaults", "inventory", fallback=""))
+
+
 @dataclass(frozen=True)
 class Repo:
     root: Path
+    # An inventory file or directory. Absolute, and not guaranteed to exist.
+    inventory: Path
+    # How `inventory` was arrived at, for Doctor and for `inventory_args`.
+    inventory_origin: str = "default"
+
+    @classmethod
+    def discover(cls, root: Path, inventory: str | Path | None = None) -> Repo:
+        """Resolve the inventory the way ansible does, then fall back.
+
+        `--inventory`, then $ANSIBLE_INVENTORY, then ansible.cfg — ansible's own
+        precedence — then a look around the repo, then the historical default.
+        A path that any of the first three name is honoured even if it does not
+        exist, because a misconfiguration is worth reporting, not papering over.
+        """
+        if inventory:
+            return cls(root, cls._resolve(root, str(inventory)), "--inventory")
+
+        env = _first_source(os.environ.get("ANSIBLE_INVENTORY", ""))
+        if env:
+            return cls(root, cls._resolve(root, env), "ANSIBLE_INVENTORY")
+
+        cfg = _cfg_inventory(root)
+        if cfg:
+            return cls(root, cls._resolve(root, cfg), "ansible.cfg")
+
+        found = _find_inventory(root)
+        if found:
+            return cls(root, found, "found")
+
+        return cls(root, root / INVENTORY_DEFAULT, "default")
+
+    @staticmethod
+    def _resolve(root: Path, value: str) -> Path:
+        path = Path(value).expanduser()
+        return path if path.is_absolute() else root / path
 
     @property
     def playbooks_dir(self) -> Path:
@@ -71,15 +196,27 @@ class Repo:
 
     @property
     def group_vars_dir(self) -> Path:
-        return self.root / "inventories" / "production" / "group_vars"
-
-    @property
-    def inventory_file(self) -> Path:
-        return self.root / "inventories" / "production" / "hosts.yml"
+        """group_vars sits beside the inventory source, as ansible expects."""
+        base = self.inventory if self.inventory.is_dir() else self.inventory.parent
+        return base / "group_vars"
 
     @property
     def vault_pass_file(self) -> Path:
         return self.root / ".vault_pass"
+
+    @property
+    def inventory_args(self) -> list[str]:
+        """`-i` for ansible, or nothing when ansible already knows."""
+        if self.inventory_origin in ANSIBLE_KNOWS:
+            return []
+        return ["-i", self.rel(self.inventory)]
+
+    def rel(self, path: Path) -> str:
+        """`path` relative to the repo root, or absolute if it lies outside."""
+        try:
+            return str(path.relative_to(self.root))
+        except ValueError:
+            return str(path)
 
 
 # --- shelling out ----------------------------------------------------
@@ -206,7 +343,7 @@ TAGS_RE = re.compile(r"TASK TAGS:\s*\[(.*?)\]", re.S)
 def playbook_tags(repo: Repo, playbook: Playbook) -> list[str]:
     """Ask ansible for the real tag list, including ones roles add."""
     code, out = capture(
-        ["ansible-playbook", str(playbook.path.relative_to(repo.root)), "--list-tags"],
+        ["ansible-playbook", repo.rel(playbook.path), "--list-tags", *repo.inventory_args],
         repo.root,
     )
     if code != 0:
@@ -230,7 +367,7 @@ def playbook_hosts(repo: Repo, playbook: Playbook, limit: str = "") -> list[str]
     playbook the patterns are meaningless on their own, so this is the only
     honest answer to "what am I about to change".
     """
-    argv = ["ansible-playbook", str(playbook.path.relative_to(repo.root)), "--list-hosts"]
+    argv = ["ansible-playbook", repo.rel(playbook.path), "--list-hosts", *repo.inventory_args]
     if limit:
         argv += ["--limit", limit]
     code, out = capture(argv, repo.root)
@@ -274,16 +411,37 @@ class Inventory:
     hosts: list[Host] = field(default_factory=list)
     groups: dict[str, list[str]] = field(default_factory=dict)
     error: str = ""
+    # What ansible said around the JSON. Usually empty; when it is not, it is
+    # the reason the inventory looks emptier than you expected.
+    warning: str = ""
+
+
+def _json_payload(out: str) -> tuple[object, str]:
+    """The first JSON value in `out`, and whatever ansible printed around it.
+
+    `capture` merges stderr into stdout and `ansible-inventory` writes its
+    [WARNING] lines there, so the JSON is usually not the whole output. Taking
+    the whole thing as JSON turns "your inventory did not parse" into "pb could
+    not parse ansible's output", which tells you nothing.
+    """
+    start = out.find("{")
+    if start < 0:
+        return None, out.strip()
+    try:
+        data, end = json.JSONDecoder().raw_decode(out[start:])
+    except json.JSONDecodeError:
+        return None, out.strip()
+    return data, (out[:start] + out[start + end :]).strip()
 
 
 def load_inventory(repo: Repo) -> Inventory:
-    code, out = capture(["ansible-inventory", "--list"], repo.root)
+    code, out = capture(["ansible-inventory", "--list", *repo.inventory_args], repo.root)
     if code != 0:
         return Inventory(error=out.strip() or f"ansible-inventory exited {code}")
-    try:
-        data = json.loads(out)
-    except json.JSONDecodeError as exc:
-        return Inventory(error=f"could not parse ansible-inventory output: {exc}")
+
+    data, noise = _json_payload(out)
+    if not isinstance(data, dict):
+        return Inventory(error=noise or "ansible-inventory printed no inventory")
 
     hostvars = data.get("_meta", {}).get("hostvars", {})
     groups: dict[str, list[str]] = {}
@@ -307,7 +465,7 @@ def load_inventory(repo: Repo) -> Inventory:
         )
         for name in sorted(hostvars)
     ]
-    return Inventory(hosts=hosts, groups=dict(sorted(groups.items())))
+    return Inventory(hosts=hosts, groups=dict(sorted(groups.items())), warning=noise)
 
 
 # --- roles -----------------------------------------------------------

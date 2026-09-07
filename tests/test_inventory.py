@@ -90,13 +90,58 @@ def test_load_inventory_reports_a_failure_instead_of_raising(
     assert "no vault secrets found" in inv.error
 
 
-def test_load_inventory_reports_unparseable_output(
+def test_load_inventory_repeats_what_ansible_said_when_there_is_no_json(
     repo: meta.Repo, fake_ansible_inventory
 ) -> None:
-    fake_ansible_inventory("this is not json")
+    """Ansible's own words beat "pb could not parse ansible's output"."""
+    fake_ansible_inventory("[WARNING]: Unable to parse inventories/typo as an inventory source")
     inv = meta.load_inventory(repo)
     assert inv.hosts == []
-    assert "could not parse" in inv.error
+    assert "Unable to parse inventories/typo" in inv.error
+
+
+def test_a_warning_printed_before_the_json_does_not_break_parsing(
+    repo: meta.Repo, fake_ansible_inventory
+) -> None:
+    """capture() merges stderr into stdout, and ansible warns on stderr — so
+    the JSON is usually not the whole output."""
+    fake_ansible_inventory(
+        "[WARNING]: Found both group and host with same name: web\n" + json.dumps(INVENTORY)
+    )
+    inv = meta.load_inventory(repo)
+    assert inv.error == ""
+    assert [h.name for h in inv.hosts] == ["stg01", "web01", "web02"]
+    assert "same name: web" in inv.warning
+
+
+def test_a_warning_printed_after_the_json_is_also_tolerated(
+    repo: meta.Repo, fake_ansible_inventory
+) -> None:
+    fake_ansible_inventory(json.dumps(INVENTORY) + "\n[WARNING]: something afterwards")
+    inv = meta.load_inventory(repo)
+    assert inv.error == ""
+    assert len(inv.hosts) == 3
+    assert "something afterwards" in inv.warning
+
+
+def test_a_clean_run_carries_no_warning(repo: meta.Repo, fake_ansible_inventory) -> None:
+    fake_ansible_inventory(json.dumps(INVENTORY))
+    assert meta.load_inventory(repo).warning == ""
+
+
+def test_an_empty_inventory_with_a_warning_explains_itself(
+    repo: meta.Repo, fake_ansible_inventory
+) -> None:
+    """This is the case that used to look like a pb bug rather than a config one."""
+    empty = {"_meta": {"hostvars": {}}, "all": {"children": ["ungrouped"]}}
+    fake_ansible_inventory(
+        "[WARNING]: No inventory was parsed, only implicit localhost is available\n"
+        + json.dumps(empty)
+    )
+    inv = meta.load_inventory(repo)
+    assert inv.hosts == []
+    assert inv.error == ""
+    assert "No inventory was parsed" in inv.warning
 
 
 def test_load_inventory_reports_a_missing_binary(repo: meta.Repo, monkeypatch) -> None:

@@ -81,7 +81,7 @@ def test_find_root_returns_start_when_there_is_no_cfg(tmp_path: Path) -> None:
 def test_repo_paths_hang_off_the_root(repo: meta.Repo) -> None:
     assert repo.playbooks_dir.is_dir()
     assert repo.roles_dir.is_dir()
-    assert repo.inventory_file.is_file()
+    assert repo.inventory.is_file()
     assert repo.group_vars_dir.is_dir()
     assert repo.vault_pass_file.is_file()
 
@@ -182,7 +182,7 @@ def test_discover_vaults_flags_an_unencrypted_file(repo: meta.Repo) -> None:
 
 
 def test_discover_vaults_is_empty_when_there_are_none(tmp_path: Path) -> None:
-    assert meta.discover_vaults(meta.Repo(root=tmp_path)) == []
+    assert meta.discover_vaults(meta.Repo.discover(tmp_path)) == []
 
 
 # --- shelling out ----------------------------------------------------

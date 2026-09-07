@@ -79,6 +79,13 @@ all:
 """
 
 
+@pytest.fixture(autouse=True)
+def _no_ambient_inventory(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Repo.discover reads $ANSIBLE_INVENTORY, so a developer who has it set
+    must not get different results from CI."""
+    monkeypatch.delenv("ANSIBLE_INVENTORY", raising=False)
+
+
 def _write(path: Path, text: str) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
@@ -127,7 +134,7 @@ def repo_root(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def repo(repo_root: Path) -> meta.Repo:
-    return meta.Repo(root=repo_root)
+    return meta.Repo.discover(repo_root)
 
 
 @pytest.fixture
@@ -148,7 +155,7 @@ def git_repo(repo_root: Path) -> meta.Repo:
     run("git", "add", "-A")
     run("git", "commit", "-qm", "Initial")
     (repo_root / "playbooks" / "web.yml").write_text(WEB_YML + "\n# edited\n", encoding="utf-8")
-    return meta.Repo(root=repo_root)
+    return meta.Repo.discover(repo_root)
 
 
 def _base_env() -> dict[str, str]:
