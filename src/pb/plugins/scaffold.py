@@ -1,4 +1,4 @@
-"""`pb plugin new` — a plugin repository that already works.
+"""`pb plugin new` - a plugin repository that already works.
 
 The template is deliberately a whole small plugin rather than a stub: it uses
 most of the hooks, so the fastest way to learn the API is to run it and delete
@@ -33,7 +33,7 @@ css = ["{module}/style.tcss"]
 """
 
 INIT = '''\
-"""{name} — a pb plugin."""
+"""{name} - a pb plugin."""
 
 from __future__ import annotations
 
@@ -53,7 +53,7 @@ class {cls}Table(DataTable):
 
 
 class {cls}(Plugin):
-    """Everything below is optional — delete the hooks you do not need."""
+    """Everything below is optional - delete the hooks you do not need."""
 
     # --- a tab of your own ------------------------------------------
 
@@ -100,7 +100,7 @@ class {cls}(Plugin):
         self.app.query_one("#{module}-table", DataTable).add_columns("Playbook", "Roles")
 
     def reloaded(self) -> None:
-        """Called whenever pb has re-read the repo — on start-up, on ctrl+r,
+        """Called whenever pb has re-read the repo - on start-up, on ctrl+r,
         and after every run. Fill your tab in here."""
         self.refresh_table()
 
@@ -146,7 +146,7 @@ class {cls}(Plugin):
 '''
 
 STYLE = """\
-/* {name} — loaded alongside pb's own stylesheet. Scope your rules to the
+/* {name} - loaded alongside pb's own stylesheet. Scope your rules to the
    widgets you added; pb's classes (.split, .detail, .detail-body) are
    available so a plugin tab looks like a built-in one. */
 
@@ -200,7 +200,7 @@ def new(name: str, parent: Path, owner: str = "your-name") -> Scaffolded:
     """Write a working plugin into `parent/name`."""
     if not NAME_RE.match(name):
         raise ManifestError(
-            f"{name!r} is not a usable plugin name — lowercase letters, digits, "
+            f"{name!r} is not a usable plugin name - lowercase letters, digits, "
             "'-', '_' and '.' only"
         )
     root = (parent / name).expanduser().resolve()

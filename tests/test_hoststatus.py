@@ -12,8 +12,8 @@ def _status(**values: str) -> hoststatus.HostStatus:
 def test_get_falls_back_to_a_dash() -> None:
     status = _status(uptime="3 days", mem="")
     assert status.get("uptime") == "3 days"
-    assert status.get("mem") == "—"
-    assert status.get("missing") == "—"
+    assert status.get("mem") == "-"
+    assert status.get("missing") == "-"
     assert status.get("missing", default="n/a") == "n/a"
 
 

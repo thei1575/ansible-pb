@@ -1,31 +1,28 @@
 ---
 hide:
   - navigation
+  - toc
 ---
 
 <div class="pb-hero" markdown>
 
-# pb
+<span class="pb-kicker">PB / RUN CONTROL</span>
 
-A terminal console for an Ansible repository. Run playbooks, read the resolved
-inventory, probe hosts over SSH, manage per-group vaults, and keep a record of
-everything you applied — without leaving the terminal.
+# Ansible operations, from inventory to run record.
+
+pb gives an Ansible repository a working surface for day-to-day operations.
+Inspect the resolved state, set the scope, review the command, run it, and keep
+the result with the repository.
 
 [Install pb](getting-started/index.md){ .md-button .md-button--primary }
-[Take the first run](getting-started/first-run.md){ .md-button }
+[Read the operator guide](getting-started/first-run.md){ .md-button }
 
 </div>
 
-pb does not reimplement Ansible. It shells out to `ansible-playbook`,
-`ansible-inventory` and `ansible-vault`, and always shows you the exact command
-before it runs.
-
-```bash
-cd ~/my-ansible-repo && pb
-```
+<div class="pb-console-label"><span>SESSION</span><code>production / webservers.yml</code><span>READY</span></div>
 
 <div class="pb-term" markdown>
-<div class="pb-term-bar"><span></span><span></span><span></span><em>pb — Playbooks</em></div>
+<div class="pb-term-bar"><strong>pb</strong><em>Playbooks</em><span>inventory loaded</span></div>
 
 ```{ .text .no-copy }
  Playbooks  Inventory  Status  Roles  Vault  History  Doctor  Plugins
@@ -39,127 +36,101 @@ cd ~/my-ansible-repo && pb
 │                                          │ HOSTS                           │
 │                                          │ web01  10.0.4.11                │
 └──────────────────────────────────────────┴─────────────────────────────────┘
- tags certs  limit web01  diff on  -v 0  extra —   t·l·d·v·e edit  x clear
+ tags certs  limit web01  diff on  -v 0
  r Run  c Dry run  s Syntax  t Tags  l Limit  d Diff  ? Help  q Quit
 ```
 
 </div>
 
-## What pb gives you
+## One run, fully accounted for
 
-<div class="grid cards" markdown>
+The interface follows the same sequence an operator follows at the shell. Each
+stage has a visible input and a recorded result.
 
--   :material-play-box-outline:{ .lg .middle } **Run anything, deliberately**
+<div class="pb-runbook" markdown>
 
-    ---
+1. **Inspect**
 
-    Apply, dry-run or syntax-check any playbook, with `--tags` and `--limit`
-    pickers fed by Ansible's own answers. The pane on the right shows the exact
-    command your options produce.
+    Read playbooks, roles, inventory, host variables, and repository checks from
+    the current checkout.
 
-    [:octicons-arrow-right-24: Playbooks](guide/playbooks.md)
+2. **Scope**
 
--   :material-target:{ .lg .middle } **See the blast radius first**
+    Choose tags and hosts from values returned by Ansible. pb resolves the final
+    target list before an apply.
 
-    ---
+3. **Review**
 
-    Applying resolves the real host list through `--list-hosts` and names the
-    hosts and their addresses before you confirm — not the pattern you typed.
+    Check the complete command, addresses, and working-tree state in the run
+    panel.
 
-    [:octicons-arrow-right-24: Applying a playbook](guide/playbooks.md#applying)
+4. **Execute**
 
--   :material-file-tree:{ .lg .middle } **Read the resolved inventory**
+    Apply, run check mode, or validate syntax in a pty with Ansible's colour and
+    streaming output intact.
 
-    ---
+5. **Record**
 
-    Hosts, groups and fully resolved variables straight from
-    `ansible-inventory`, with credential-shaped values masked until you ask.
-    Ping, gather facts, or drop into an SSH session.
-
-    [:octicons-arrow-right-24: Inventory](guide/inventory.md)
-
--   :material-heart-pulse:{ .lg .middle } **Check the fleet, read-only**
-
-    ---
-
-    One SSH round trip per host: uptime, load, disk, memory, pending updates,
-    failed units, running containers and certificate expiry. Nothing is
-    changed.
-
-    [:octicons-arrow-right-24: Status](guide/status.md)
-
--   :material-history:{ .lg .middle } **Keep the record**
-
-    ---
-
-    Every run is written to `.pb/runs/` — command, tags, exit code, recap, the
-    commit it ran against, and the full output. "What did I apply, and did it
-    work" has an answer.
-
-    [:octicons-arrow-right-24: History](guide/history.md)
-
--   :material-lock-outline:{ .lg .middle } **Handle the vaults**
-
-    ---
-
-    View, edit, create and rekey the per-group vaults, always through
-    `ansible-vault` itself. pb never writes an encrypted file another way.
-
-    [:octicons-arrow-right-24: Vault](guide/vault.md)
-
--   :material-puzzle-outline:{ .lg .middle } **Extend it, without forking it**
-
-    ---
-
-    pb is deliberately narrow. A plugin is a git repository pb clones and
-    imports at start-up: a tab of your own, extra keys, extra Doctor checks, or
-    a veto on a command before it runs. A broken one costs you that plugin,
-    never your console.
-
-    [:octicons-arrow-right-24: Plugins](guide/plugins.md)
+    Keep the command, output, exit code, recap, timestamp, and Git commit under
+    `.pb/runs/`.
 
 </div>
 
-## What it does that a Makefile cannot
+## Plugin system
 
-!!! abstract "Three things worth the tab"
+The plugin API is a core pb surface for repository-specific operations. Plugins
+run inside the application and use the same repository, inventory, history,
+launch, notification, and viewer interfaces as built-in features.
 
-    **It shows the blast radius.** Applying resolves the real host list through
-    `--list-hosts` and names the hosts and addresses before you confirm, rather
-    than showing you a pattern.
-
-    **It keeps a record.** Every run is written to `.pb/runs/` in the repo —
-    command, tags, exit code, recap, the commit it ran against, and the full
-    output.
-
-    **It marks uncommitted work.** A yellow `●` on a playbook or role means its
-    files differ from `HEAD`; <kbd>ctrl</kbd>+<kbd>g</kbd> shows the diff.
-
-## The eight tabs
-
-| Tab | What it is for |
+| Extension point | Purpose |
 |---|---|
-| [Playbooks](guide/playbooks.md) | Run, dry-run or syntax-check anything, with `--tags`/`--limit` pickers |
-| [Inventory](guide/inventory.md) | Hosts, groups, resolved vars, ping, facts, ssh |
-| [Status](guide/status.md) | Live health per host over SSH: uptime, disk, failed units, containers, cert expiry |
-| [Roles](guide/roles.md) | Task files, defaults, and which playbooks use each role |
-| [Vault](guide/vault.md) | View, edit, create and rekey the per-group vaults |
-| [History](guide/history.md) | Every run pb has made, with its output kept |
-| [Doctor](guide/doctor.md) | Preflight over the whole repo |
-| [Plugins](guide/plugins.md) | Install, update and inspect the plugins that extend pb |
+| Tabs and key actions | Add an operational screen or extend an existing one |
+| Command palette | Expose plugin commands through the global palette |
+| Doctor checks | Validate tools, configuration, and repository requirements |
+| Run hooks | Inspect, change, stop, or respond to a command |
+| Detail panes and status bar | Add context to existing pb surfaces |
 
-## Requirements
+[Manage plugins](guide/plugins.md){ .md-button .md-button--primary }
+[Build a plugin](plugins/quickstart.md){ .md-button }
+[Plugin API](reference/writing-plugins.md){ .md-button }
+
+## Repository workspace
+
+| Surface | Operational use |
+|---|---|
+| [Playbooks](guide/playbooks.md) | Build and run `ansible-playbook` commands with tags, limits, diff, verbosity, and extra arguments |
+| [Inventory](guide/inventory.md) | Inspect hosts, groups, and resolved variables; run ping and facts; open SSH sessions |
+| [Status](guide/status.md) | Read uptime, disk, memory, failed units, containers, package updates, and certificate expiry over SSH |
+| [Roles](guide/roles.md) | Read task files and defaults, then trace direct playbook use |
+| [Vault](guide/vault.md) | View, edit, create, and rekey group vaults through `ansible-vault` |
+| [History](guide/history.md) | Review saved run output and repeat an exact command |
+| [Doctor](guide/doctor.md) | Check inventory selection, tools, collections, vaults, and playbook syntax |
+| [Plugins](guide/plugins.md) | Install, update, enable, disable, and inspect pb extensions |
+
+## Ansible remains the execution layer
+
+pb invokes `ansible-playbook`, `ansible-inventory`, `ansible-vault`, and
+`ansible` from `PATH`. This keeps repository configuration, inventory plugins,
+vault handling, and installed collections in Ansible's control. The exact
+command appears in the interface before execution.
+
+```bash
+cd ~/my-ansible-repo
+pb
+```
+
+The nearest `ansible.cfg` establishes the repository root. Use `-i` to select a
+different inventory for the session.
+
+## System requirements
 
 - Python 3.11 or newer
-- A POSIX terminal — macOS or Linux. pb allocates a pty so Ansible keeps its
-  colour, which Windows has no equivalent for.
-- An `ansible` on your `PATH`. Ansible is deliberately **not** a dependency of
-  pb: it drives whatever you already have, so it never interferes with how you
-  install it.
-- An Ansible repository with an `ansible.cfg` at its root.
+- macOS or Linux with a POSIX terminal
+- Ansible available on `PATH`
+- An Ansible repository containing `ansible.cfg`
 
-!!! warning "pb runs Ansible as you"
+!!! warning "Run records may contain secrets"
 
-    pb has as much reach as your own shell does, and `ansible-inventory`
-    decrypts your vaults to resolve variables. Read
-    [Security](project/security.md) before you point it at production.
+    `.pb/runs/` stores complete Ansible output. Add `.pb/` to the repository's
+    `.gitignore` and manage its local permissions accordingly. Review the
+    [security model](project/security.md) before using pb with production hosts.

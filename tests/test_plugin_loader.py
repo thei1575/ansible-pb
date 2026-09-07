@@ -1,7 +1,7 @@
 """Importing third-party code without letting it take pb down.
 
 Every way a plugin can be broken should come back as a `Failure` naming the
-plugin and the stage it failed at — never as an exception out of `load_all`.
+plugin and the stage it failed at - never as an exception out of `load_all`.
 """
 
 from __future__ import annotations
@@ -96,7 +96,7 @@ def test_a_constructor_that_raises_is_reported(store: Store, linked_plugin) -> N
 def test_a_plugin_written_for_another_api_never_gets_imported(
     store: Store, make_plugin
 ) -> None:
-    """The gate has to hold for a plugin already in the state file — one whose
+    """The gate has to hold for a plugin already in the state file - one whose
     manifest changed under pb, or that a newer pb installed."""
     root = make_plugin(
         name="pb-mine",

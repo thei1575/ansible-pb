@@ -92,8 +92,8 @@ def pb_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
     `config_dir()` is one directory holding both what the update check
     remembers and which plugins are installed, and `$PB_HOME` moves all of it.
-    A test must never read — still less install into, or overwrite a skipped
-    version in — the config of whoever is running it. The two off switches go
+    A test must never read - still less install into, or overwrite a skipped
+    version in - the config of whoever is running it. The two off switches go
     with it, so a developer who has either exported does not get different
     results from CI.
     """
@@ -144,7 +144,7 @@ def repo_root(tmp_path: Path) -> Path:
         inv / "group_vars" / "all" / "vault.yml",
         f"{meta.VAULT_HEADER};1.1;AES256\n3132333435363738393061626364656667\n",
     )
-    # A vault that was never encrypted — the Vault tab must flag it.
+    # A vault that was never encrypted - the Vault tab must flag it.
     _write(inv / "group_vars" / "web" / "vault.yml", "---\nvault_web_password: plaintext\n")
 
     _write(root / ".vault_pass", "hunter2\n")

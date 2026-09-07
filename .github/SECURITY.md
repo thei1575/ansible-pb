@@ -16,16 +16,16 @@ fix looks like.
 
 pb is pre-1.0. Fixes land on `main`; there are no maintained release branches.
 
-## What pb touches, and what that means for you
+## Access model
 
-pb is a console over your own Ansible repository. It runs on your machine as
-you, with your credentials, and it deliberately has a lot of reach. Things
-worth knowing:
+pb runs on your machine under your user account and uses the credentials
+available to that account. Review the following access before running it
+against production:
 
 * **pb runs Ansible as you.** It shells out to `ansible-playbook`,
   `ansible-inventory` and `ansible-vault` on your `PATH`, in your repo, with
   your environment. Anything those can do, pb can do. The exact command is
-  always shown before it runs — read it.
+  always shown before it runs - read it.
 * **`ansible-inventory` decrypts your vaults.** Resolving inventory variables
   means the plaintext of every group vault passes through pb's memory. The
   Inventory tab masks anything credential-shaped (`*_password`, `*_token`,
@@ -33,7 +33,7 @@ worth knowing:
   screen-level courtesy, not a boundary. Do not screen-share the Inventory tab
   with values revealed.
 * **Run records contain full Ansible output.** Every run is written to
-  `.pb/runs/` in your repo — the command, the recap, and the complete captured
+  `.pb/runs/` in your repo - the command, the recap, and the complete captured
   output, which can include anything a task printed. Add `.pb/` to your repo's
   `.gitignore`. pb prunes to the last 300 runs and never deletes the
   directory itself.
@@ -44,17 +44,17 @@ worth knowing:
   It connects with `BatchMode=yes` and `StrictHostKeyChecking=accept-new`, so a
   host key pb has not seen before is accepted and pinned on the first probe
   rather than prompting. These are passed as `-o` flags, which take precedence
-  over `~/.ssh/config`, so a stricter setting there will not override them — if
+  over `~/.ssh/config`, so a stricter setting there will not override them - if
   that trade-off does not suit you, please open an issue.
 * **Vault edits go through `ansible-vault`.** pb writes an encrypted file only
   by invoking `ansible-vault` itself. It reads your vault password from the
-  repo's `.vault_pass` the same way Ansible does — keep that file `0600` and
+  repo's `.vault_pass` the same way Ansible does - keep that file `0600` and
   gitignored. pb never stores or transmits it.
 * **A plugin is code you chose to run inside pb.** Plugins are Python imported
   into pb's own process, with your permissions and no sandbox: a plugin can
   read your repo and your `.vault_pass`, change the `ansible` commands pb
   builds, and replace what any key does. pb does what it can to keep that
-  deliberate — installing asks for confirmation and prints the URL it is about
+  deliberate - installing asks for confirmation and prints the URL it is about
   to clone (and refuses rather than installing silently when there is no
   terminal to ask in), nothing a plugin ships runs at install time, and every
   install records the exact commit, which `pb plugin info` shows. But
@@ -63,7 +63,7 @@ worth knowing:
   `pb --no-plugins` starts pb with none.
 * **pb makes exactly one network connection of its own: the update check.**
   Once a day at startup it GETs the release list of its own repository from
-  `api.github.com`, and — only when there is a newer version — its `CHANGELOG.md`
+  `api.github.com`, and - only when there is a newer version - its `CHANGELOG.md`
   from `raw.githubusercontent.com`. Both are unauthenticated and anonymous: no
   telemetry, nothing about you, your repo or your hosts, and the only thing
   identifying at all is a `pb/<version>` User-Agent, which GitHub requires.
@@ -71,7 +71,7 @@ worth knowing:
   your machine and nowhere else. `pb --no-update-check`, or
   `PB_NO_UPDATE_CHECK=1`, stops it; `ctrl+u` then checks only when you ask.
   Accepting an update runs an installer (`uv tool install`, `pipx install` or
-  `pip install`) against a tag of that same repository — pb shows you the whole
+  `pip install`) against a tag of that same repository. pb shows you the whole
   command first and runs nothing else. Everything else pb sends is Ansible's,
   SSH's, and `git`'s when you ask pb to install or update a plugin.
 
@@ -82,8 +82,7 @@ worth knowing:
   and screen-sharing, nothing more.
 * Anything Ansible itself does with a playbook you chose to run.
 * Anything a plugin you chose to install does. pb contains a plugin's
-  *mistakes* — an exception in a hook switches that plugin off and is reported
-  on the Doctor tab — but not its intentions. There is no sandbox and none is
-  claimed.
-* Local file permissions on `.vault_pass` or `.pb/` — pb honours your umask;
+  errors. An exception in a hook switches that plugin off and is reported on
+  the Doctor tab. Plugins run with your user permissions and have no sandbox.
+* Local file permissions on `.vault_pass` or `.pb/` - pb honours your umask;
   setting them correctly is yours.

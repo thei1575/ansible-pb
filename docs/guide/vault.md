@@ -2,9 +2,8 @@
 
 <kbd>5</kbd>
 
-One row per group vault, with whether it is actually encrypted and how big it
-is. Every write goes through `ansible-vault` itself — pb never produces an
-encrypted file another way.
+Each group vault appears with its encryption state and size. View, edit, create,
+and rekey actions run through `ansible-vault`.
 
 <div class="pb-keys" markdown>
 
@@ -17,9 +16,9 @@ encrypted file another way.
 
 </div>
 
-## What counts as a vault
+## Vault discovery
 
-pb lists `group_vars/*/vault.yml`, relative to whichever inventory won — so a
+pb lists `group_vars/*/vault.yml`, relative to whichever inventory won - so a
 group is a directory:
 
 ```
@@ -44,7 +43,7 @@ outright.
 
 <kbd>v</kbd> shells out to `ansible-vault view` and shows the plaintext in a
 highlighted viewer. If it cannot decrypt, pb shows Ansible's own error rather
-than an empty pane — usually a `.vault_pass` that is missing or wrong.
+than an empty pane - usually a `.vault_pass` that is missing or wrong.
 
 Doctor runs the same `view` against every vault as part of its preflight, so
 "do all my vaults still decrypt" is one keypress in the Doctor tab.
@@ -73,7 +72,7 @@ plaintext file.
 If the group already has a vault, pb says so and does nothing. The group
 directory is created if it does not exist. Behind the scenes pb writes a
 temporary plaintext file in the repository root, encrypts it to the target path
-with `ansible-vault encrypt --output`, and removes the temporary file — whether
+with `ansible-vault encrypt --output`, and removes the temporary file - whether
 or not the encryption succeeded.
 
 ## Rekeying
@@ -86,8 +85,8 @@ for the new password there.
 
     Rekeying changes the password on the files; it does not change the password
     file pb and Ansible read. Until you update `.vault_pass`, every command that
-    touches a vault fails — including the inventory load, which means most of
-    pb. The confirmation says so, and this is the one operation worth doing with
+    touches a vault fails - including the inventory load, which means most of
+    pb. The confirmation says so, and this operation should be run with
     a clean working tree so you can `git checkout` out of a mistake.
 
 ## The password file
@@ -98,9 +97,9 @@ prompts for it.
 
 Doctor checks two things about it:
 
-- that it exists — if not, the check **fails**, because nothing that touches a
+- that it exists - if not, the check **fails**, because nothing that touches a
   vault will run
-- that its mode is exactly `0600` — anything else is a **fail** with
+- that its mode is exactly `0600` - anything else is a **fail** with
   `should be 0o600`
 
 Keep it gitignored. See [Files pb touches](../reference/files.md).

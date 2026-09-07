@@ -2,15 +2,11 @@
 
 <kbd>8</kbd>
 
-pb is deliberately narrow, which leaves the things only your own
-infrastructure cares about — a drift check, a change-ticket gate, a
-notification on every apply — with nowhere to go. A plugin is where they go.
-
-A plugin is a git repository pb clones and imports at start-up. It can add a
-tab, add keys to a tab pb already has, add [Doctor](doctor.md) checks and
-command-palette entries, edit or veto a command before it runs, react to a
-finished run, and append to any detail pane or the status strip. It can also
-**replace** what one of pb's own keys does.
+Plugins adapt pb to operations specific to your infrastructure. Each plugin is
+a Git repository containing a manifest and Python module. Plugins can add tabs,
+key actions, [Doctor](doctor.md) checks, command-palette entries, run hooks,
+detail-pane sections, and status-bar data. They can also replace a built-in key
+action.
 
 <div class="pb-keys" markdown>
 
@@ -24,9 +20,18 @@ finished run, and append to any detail pane or the status strip. It can also
 
 </div>
 
-To write one, see [Writing a plugin](../reference/writing-plugins.md).
+## Developer documentation
 
-## What each row shows
+| Page | Use it for |
+|---|---|
+| [First plugin](../plugins/quickstart.md) | Scaffold, link, run, and inspect a working plugin |
+| [Architecture and lifecycle](../plugins/architecture.md) | Loader stages, hook order, threads, state, and failure handling |
+| [Hook cookbook](../plugins/hooks.md) | Tabs, actions, commands, run policy, Doctor checks, and status output |
+| [Testing and debugging](../plugins/testing.md) | Unit tests, headless Textual tests, isolated config, and load failures |
+| [Packaging and distribution](../plugins/distribution.md) | Repository layout, releases, refs, updates, and private Git hosts |
+| [API reference](../reference/writing-plugins.md) | Manifest fields, classes, dataclasses, hooks, and built-in action names |
+
+## Columns
 
 | Column | Comes from |
 |---|---|
@@ -36,9 +41,8 @@ To write one, see [Writing a plugin](../reference/writing-plugins.md).
 | Where from | what you typed when you installed it, or the directory it is linked to |
 | What it adds | its one-line `summary` |
 
-The detail pane adds the ref and commit that are checked out, the directory it
-lives in, and which hooks that plugin actually implements — the quickest
-answer to "what is this thing doing to my pb".
+The detail pane shows the checked-out ref and commit, installation directory,
+and implemented hooks.
 
 ## Installing
 
@@ -62,12 +66,11 @@ A pinned install stays pinned: `pb plugin update` re-resolves the same ref
 rather than drifting onto a branch. An unpinned one fast-forwards to the
 remote's default branch.
 
-## Why a restart
+## Restart requirement
 
-Installing, updating, enabling and removing all take effect the next time pb
-starts. Plugin code is imported once, at start-up, and pb does not pretend it
-can swap it under a live UI — a half-replaced action or a tab whose widgets
-belong to a previous version of the code is worse than being told to restart.
+Installing, updating, enabling, and removing take effect the next time pb
+starts. Plugin code is imported once during startup. A restart keeps tabs,
+actions, and loaded Python modules on the same plugin version.
 
 The messages say so, and the state on the tab distinguishes `✔ loaded` from
 `• pending restart` precisely so you can tell which version you are looking
@@ -80,8 +83,7 @@ the rest of the session, its tabs are removed, its replaced actions are handed
 back to the built-ins, a notification names the hook that failed, and it
 becomes a failed check on the [Doctor](doctor.md) tab. pb keeps running.
 
-That is deliberate: a plugin should cost you that plugin, never your console.
-<kbd>o</kbd> shows the traceback.
+<kbd>o</kbd> shows the traceback for the disabled plugin.
 
 If pb misbehaves and you are not sure a plugin is to blame, start it without
 any:
@@ -97,30 +99,28 @@ prints the traceback without starting the TUI:
 pb plugin doctor
 ```
 
-## What installing one means
+## Trust boundary
 
-A plugin is Python running inside pb, with your permissions. It can read your
-repo and your `.vault_pass`, change the `ansible` commands pb builds, and
-replace what any key does. There is no sandbox, and pb does not pretend there
-is one.
-
-So pb makes the decision an explicit one:
+A plugin is Python running inside pb with your permissions. It can read the
+repository and `.vault_pass`, change the `ansible` commands pb builds, and
+replace key actions. Plugins have no sandbox. Installation requires an explicit
+decision:
 
 - Installing asks first, and prints the URL it is about to clone. `--yes`
   skips the prompt; with no terminal to ask in, `pb plugin install` refuses
   rather than installing silently.
-- **Nothing a plugin ships runs at install time.** The clone is a clone; the
-  code is imported the next time pb starts.
+- **Plugin code first runs at application startup.** Installation only clones
+  the repository and records its metadata.
 - Every install records the exact commit. `pb plugin info <name>` shows it,
-  and the checkout is an ordinary git repository, so `git log` in it tells the
-  truth about what you are running.
+  and the checkout is an ordinary Git repository that can be inspected with
+  `git log`.
 - `pb plugin disable <name>` keeps a plugin installed but stops loading it.
 
 Read a plugin before you install it, the way you would read a shell script
 someone sent you. See also
 [Security](https://github.com/thei1575/ansible-pb/blob/main/.github/SECURITY.md).
 
-## Where they live
+## Installation path
 
 Under [pb's config directory](../reference/files.md#writes-in-your-home-directory),
 not in your Ansible repo: which plugins you have installed is about your

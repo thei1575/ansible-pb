@@ -1,7 +1,7 @@
 # Files pb touches
 
-pb is a console over your own repository. It reads a lot and writes almost
-nothing. This page is the complete list, on your machine and on your hosts.
+This reference lists every repository path, user path, command, network
+request, and host resource used by pb.
 
 ## Reads, in your repository
 
@@ -9,10 +9,10 @@ nothing. This page is the complete list, on your machine and on your hosts.
 |---|---|
 | `ansible.cfg` | marks the repository root; `[defaults] inventory` is read from it |
 | `playbooks/*.yml` | the [Playbooks](../guide/playbooks.md) tab |
-| `roles/*/` | the [Roles](../guide/roles.md) tab — `tasks/*.yml`, `defaults/main.yml`, and which of `handlers`, `templates`, `files`, `vars`, `meta` exist |
+| `roles/*/` | the [Roles](../guide/roles.md) tab - `tasks/*.yml`, `defaults/main.yml`, and which of `handlers`, `templates`, `files`, `vars`, `meta` exist |
 | the resolved inventory | via `ansible-inventory --list` |
-| `<group_vars>/*/vault.yml` | the [Vault](../guide/vault.md) tab — only the first line is read directly, to check the `$ANSIBLE_VAULT` header |
-| `.vault_pass` | its existence and mode, for [Doctor](../guide/doctor.md). pb does not read the contents — Ansible does |
+| `<group_vars>/*/vault.yml` | the [Vault](../guide/vault.md) tab - only the first line is read directly, to check the `$ANSIBLE_VAULT` header |
+| `.vault_pass` | its existence and mode, for [Doctor](../guide/doctor.md). pb does not read the contents - Ansible does |
 | `collections/ansible_collections/*/*` | the collections Doctor lists |
 | `.git` | via `git`, for the `●` marker, the changes viewer, and the commit recorded with each run |
 
@@ -30,7 +30,7 @@ Every run pb launches, as a pair of files named by local timestamp:
 ```
 
 pb prunes to the most recent 300 pairs and never removes the directory itself.
-A failure to write a record is swallowed — losing history must not cost you the
+A failure to write a record is swallowed - losing history must not cost you the
 run you are watching.
 
 ### `pb-<label>-<timestamp>.log`
@@ -45,7 +45,7 @@ own, with anything outside `[A-Za-z0-9-_]` replaced by `-`.
     echo 'pb-*.log' >> .gitignore
     ```
 
-    Run records hold the **complete** Ansible output and are not scrubbed —
+    Run records hold the **complete** Ansible output and are not scrubbed -
     anything a task printed is in there. Committing them is how output that was
     only ever meant for your terminal ends up in a shared repository's history.
 
@@ -53,13 +53,13 @@ own, with anything outside `[A-Za-z0-9-_]` replaced by `-`.
 
 <kbd>n</kbd> in the Vault tab writes `.pb-new-vault.yml` in the repository root,
 encrypts it to the target path with `ansible-vault encrypt --output`, and
-removes it — whether or not the encryption succeeded.
+removes it - whether or not the encryption succeeded.
 
 ## Writes, in your home directory
 
 Everything pb keeps between runs lives in one directory: `$PB_HOME` if you set
 it, else `$XDG_CONFIG_HOME/pb`, else `~/.config/pb`. Nothing in it is about
-your repository — it is all about your machine, which is why it is not in the
+your repository - it is all about your machine, which is why it is not in the
 repo.
 
 ### `~/.config/pb/update.json`
@@ -81,7 +81,7 @@ write it is swallowed, the same as a run record.
 
 ### `~/.config/pb/plugins.json`
 
-The record of which [plugins](../guide/plugins.md) are installed — for each
+The record of which [plugins](../guide/plugins.md) are installed - for each
 one, what you typed to install it, the git URL that resolved to, the ref and
 the exact commit checked out, and whether it is enabled.
 
@@ -95,7 +95,7 @@ what is installed.
 
 One git clone per installed plugin. **pb owns these directories**: `pb plugin
 update` fetches and resets, which discards anything you edited in them. To
-work on a plugin, keep your own checkout and `pb plugin link` it — pb then
+work on a plugin, keep your own checkout and `pb plugin link` it - pb then
 reads it where it lies and never touches it with git.
 
 Nothing here is executed at install time. It is imported the next time pb
@@ -107,7 +107,7 @@ Created only if a plugin asks for it. Each plugin gets its own directory to
 keep whatever it needs between runs; pb creates the path and never reads or
 writes inside it.
 
-## What pb never writes
+## Excluded writes
 
 - An encrypted file, except by invoking `ansible-vault` itself.
 - Anything under `playbooks/`, `roles/`, or the inventory.
@@ -166,7 +166,7 @@ The complete list of external commands, so you can audit it against your own
 | `ansible-vault edit` | <kbd>e</kbd> in Vault |
 | `ansible-vault encrypt --output` | <kbd>n</kbd> in Vault |
 | `ansible-vault rekey` | <kbd>k</kbd> in Vault |
-| `ansible-lint --version` | Doctor — the version only; pb never lints |
+| `ansible-lint --version` | Doctor - the version only; pb never lints |
 | `ssh` | the Status probe, and <kbd>s</kbd> in Inventory and Status |
 | `git status`, `git diff`, `git rev-parse` | the `●` marker, the changes viewer, the commit per run |
 | `git clone`, `git fetch`, `git checkout`, `git reset` | installing and updating a [plugin](../guide/plugins.md) |
@@ -176,5 +176,5 @@ The complete list of external commands, so you can audit it against your own
 Runs get a pty and their own process group, so cancelling with
 <kbd>ctrl</kbd>+<kbd>c</kbd> kills the forks Ansible spawned and not just
 Ansible itself. Read-only lookups get a plain pipe, stderr merged into
-stdout, and a 120-second timeout — 30 seconds for the `--version` probes and
+stdout, and a 120-second timeout - 30 seconds for the `--version` probes and
 `ansible-vault view`, 10 for `git rev-parse`.

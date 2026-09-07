@@ -1,12 +1,12 @@
-## What this changes
+## Change
 
 <!-- One or two sentences, from the user's point of view. -->
 
-## Why
+## Operator or maintainer need
 
 <!-- Link the issue if there is one: Fixes #123 -->
 
-## How you tested it
+## Verification
 
 <!-- Which Ansible repo did you run it against? What did you try? -->
 
@@ -19,5 +19,5 @@
 - [ ] Any new view over inventory data goes through `meta.redact()`
 - [ ] `CHANGELOG.md` updated under `## [Unreleased]`, if the change is
       user-visible
-- [ ] `docs/` updated, if the change alters how pb behaves —
+- [ ] `docs/` updated, if the change alters how pb behaves -
       `mkdocs build --strict` passes

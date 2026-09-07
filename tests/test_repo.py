@@ -2,7 +2,7 @@
 
 pb has to agree with ansible about which inventory it is looking at, or the
 host list it shows before an apply is a lie. The precedence mirrors ansible's
-own: -i, then $ANSIBLE_INVENTORY, then ansible.cfg — and only then does pb
+own: -i, then $ANSIBLE_INVENTORY, then ansible.cfg - and only then does pb
 guess.
 """
 

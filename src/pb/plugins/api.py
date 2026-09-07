@@ -6,7 +6,7 @@ dataclasses for the things they contribute and a `Plugin` base class whose
 methods are all optional: override the hooks you need and ignore the rest.
 
 A plugin is ordinary Python running in pb's own process. It can read the repo,
-add tabs and keys, and replace an existing action outright — see
+add tabs and keys, and replace an existing action outright - see
 `docs/reference/writing-plugins.md`.
 """
 
@@ -40,7 +40,7 @@ class TabSpec:
     """A whole tab of your own.
 
     `factory` is called once, on mount, and must return the widget that fills
-    the pane — usually a container. `focus` is a selector for the widget that
+    the pane - usually a container. `focus` is a selector for the widget that
     should take focus when the tab is activated, and it has to name something
     focusable (a `DataTable`, an `Input`, a container with `can_focus`): a
     `Static` will not take focus, and key bindings on your widgets do not fire
@@ -61,7 +61,7 @@ class TabSpec:
 class KeySpec:
     """One key binding, attached to a widget that already exists.
 
-    `target` is a widget id — `playbooks`, `hosts`, `roles`, `vaults`,
+    `target` is a widget id - `playbooks`, `hosts`, `roles`, `vaults`,
     `status`, `history`, `doctor`, one of your own, or the literal `app` for a
     binding that works everywhere. `action` is a Textual action string, so an
     action on the app needs the `app.` namespace: `app.my_action`.
@@ -104,7 +104,7 @@ class RunRequest:
     `before_run` hooks receive this and may edit it: change `argv`, add
     environment variables for the child process, or call `veto()` to stop the
     run. Whatever `argv` ends up as is what the user is shown and what
-    executes — pb never runs something it has not displayed.
+    executes - pb never runs something it has not displayed.
     """
 
     argv: list[str]
@@ -152,7 +152,7 @@ class Plugin:
     and disables the plugin for the rest of the session rather than dying.
 
     Threads: `doctor()` runs in a worker thread, so it may shell out. Every
-    other hook runs on the UI thread and must not block — use
+    other hook runs on the UI thread and must not block - use
     `self.app.run_worker` or pb's own `_launch` for anything slow.
     """
 
@@ -183,7 +183,7 @@ class Plugin:
     def actions(self) -> Mapping[str, Callable[..., Any]]:
         """Actions to install on the app, by name without the `action_` prefix.
 
-        A name pb already uses replaces the built-in — `{"run": self.my_run}`
+        A name pb already uses replaces the built-in - `{"run": self.my_run}`
         takes over `r` on the Playbooks tab. Call `self.base_action("run")` to
         get what was there before, so a plugin can wrap rather than replace.
         """
@@ -201,7 +201,7 @@ class Plugin:
     def reloaded(self) -> None:
         """Called every time pb has re-read the repo and repainted the tabs.
 
-        `activate()` runs before the first load, so this — not `activate()` —
+        `activate()` runs before the first load, so this - not `activate()` -
         is where a tab of your own fills itself in: it fires on start-up, on
         ctrl+r, and after every run.
         """
@@ -212,7 +212,7 @@ class Plugin:
     def after_run(self, result: RunResult) -> None:
         """Called once a run has finished and been written to history.
 
-        Only for runs pb streamed on the run screen — the same ones that end
+        Only for runs pb streamed on the run screen - the same ones that end
         up in `.pb/runs`. Anything that leaves the TUI for a real terminal (an
         ssh session, `ansible-vault edit`, a playbook with `vars_prompt`) is
         not recorded and does not arrive here; `before_run` still sees it.

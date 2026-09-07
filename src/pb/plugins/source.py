@@ -1,4 +1,4 @@
-"""Getting a plugin from GitHub — or from anything else git can clone.
+"""Getting a plugin from GitHub - or from anything else git can clone.
 
 pb shells out to `git`, the way it shells out to ansible: no bundled HTTP
 client, no tarball unpacking, and `git` already knows about the user's SSH
@@ -39,7 +39,7 @@ class Source:
 
     url: str
     ref: str = ""
-    # What the plugin would be called if the manifest did not say — the last
+    # What the plugin would be called if the manifest did not say - the last
     # path segment. Only ever a fallback: the manifest wins.
     name_hint: str = ""
     # What the user typed, kept for `pb plugin list`.
@@ -83,7 +83,7 @@ def resolve(spec: str, ref: str = "") -> Source:
 
 
 def _is_scp_style(spec: str) -> bool:
-    """`git@github.com:owner/repo.git` — a URL to git, but not to urllib."""
+    """`git@github.com:owner/repo.git` - a URL to git, but not to urllib."""
     head, sep, tail = spec.partition(":")
     return bool(sep) and "@" in head and "/" not in head and not tail.startswith("//")
 
@@ -133,7 +133,7 @@ def _git(argv: list[str], cwd: Path | None = None, timeout: int = DEFAULT_TIMEOU
             },
         )
     except FileNotFoundError as exc:
-        raise SourceError("git is not on PATH — pb installs plugins with git") from exc
+        raise SourceError("git is not on PATH - pb installs plugins with git") from exc
     except subprocess.TimeoutExpired as exc:
         raise SourceError(f"git {argv[0]} timed out after {timeout}s") from exc
     if proc.returncode != 0:
@@ -172,8 +172,8 @@ def _checkout(repo: Path, ref: str, timeout: int = DEFAULT_TIMEOUT) -> None:
         _git(["fetch", "--quiet", "--tags", "origin", ref], cwd=repo, timeout=timeout)
         fetched = True
     except SourceError:
-        # A remote may refuse to fetch a ref by name — an unadvertised commit,
-        # typically — and yet already have it in the clone. Try anyway.
+        # A remote may refuse to fetch a ref by name - an unadvertised commit,
+        # typically - and yet already have it in the clone. Try anyway.
         pass
 
     candidates = (["FETCH_HEAD"] if fetched else []) + [ref, f"origin/{ref}"]
@@ -184,17 +184,17 @@ def _checkout(repo: Path, ref: str, timeout: int = DEFAULT_TIMEOUT) -> None:
             return
         except SourceError as exc:
             failures.append(str(exc))
-    raise SourceError(f"no such ref {ref!r} in this repository — {failures[-1]}")
+    raise SourceError(f"no such ref {ref!r} in this repository - {failures[-1]}")
 
 
 def update(repo: Path, ref: str = "", timeout: int = DEFAULT_TIMEOUT) -> tuple[str, str]:
     """Fetch and move the checkout on. Returns (old commit, new commit).
 
-    pb owns this directory, so an update discards local edits in it — develop
+    pb owns this directory, so an update discards local edits in it - develop
     against a checkout of your own with `pb plugin link` instead.
     """
     if not (repo / ".git").exists():
-        raise SourceError(f"{repo} is not a git checkout — reinstall the plugin")
+        raise SourceError(f"{repo} is not a git checkout - reinstall the plugin")
     before = head(repo)
     if ref:
         _checkout(repo, ref, timeout=timeout)

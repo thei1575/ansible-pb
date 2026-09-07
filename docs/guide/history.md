@@ -2,9 +2,9 @@
 
 <kbd>6</kbd>
 
-Every run pb has made, newest first, with its full output kept. Infrastructure
-work needs an answer to "what did I apply, when, against which commit, and did
-it work" — the terminal scrollback is not that answer, and this is.
+History lists pb runs from newest to oldest and retains their full output. Each
+record ties an Ansible command and result to the repository commit used at the
+time.
 
 <div class="pb-keys" markdown>
 
@@ -19,7 +19,7 @@ Recording is automatic and applies to every run pb launches: applies, dry runs,
 syntax checks, and the ad-hoc `ping` and `setup` from the
 [Inventory](inventory.md) tab. There is nothing to switch on.
 
-## What is recorded
+## Run record
 
 Each run produces two files under `.pb/runs/`, named by local timestamp:
 
@@ -33,7 +33,7 @@ The JSON sidecar holds:
 | Field | What |
 |---|---|
 | `label` | e.g. `webservers (apply)`, `ping web01` |
-| `argv` | the exact command, as a list — what <kbd>a</kbd> replays |
+| `argv` | the exact command, as a list - what <kbd>a</kbd> replays |
 | `started`, `duration` | Unix timestamp and elapsed seconds |
 | `exit_code` | Ansible's, verbatim |
 | `recap` | the `PLAY RECAP` counters, per host |
@@ -45,8 +45,8 @@ it greps.
 
 ### The recap
 
-pb parses the `PLAY RECAP` block into per-host counters —
-`ok`, `changed`, `unreachable`, `failed`, `skipped`, `rescued`, `ignored` — and
+pb parses the `PLAY RECAP` block into per-host counters -
+`ok`, `changed`, `unreachable`, `failed`, `skipped`, `rescued`, `ignored` - and
 the table shows the totals across hosts as e.g. `ok=41 changed=3`. Only
 non-zero counters are shown, so a clean run reads short.
 
@@ -58,7 +58,7 @@ makes <kbd>a</kbd> ask for confirmation on some records and not others.
 
 ## Re-running
 
-<kbd>a</kbd> replays the recorded `argv` exactly — same tags, same limit, same
+<kbd>a</kbd> replays the recorded `argv` exactly - same tags, same limit, same
 extra arguments, whatever your current options happen to be. It does **not**
 rebuild the command from today's settings.
 
@@ -69,15 +69,15 @@ it just runs.
 !!! warning "Same command, possibly different result"
 
     The command is replayed as recorded; the repository is not. If the playbook,
-    the roles or the inventory changed since — or if you are on a different
-    commit — the run does something different. The record names the commit it
+    the roles or the inventory changed since - or if you are on a different
+    commit - the run does something different. The record names the commit it
     ran against, which is how you tell.
 
 ## Pruning, and what to do about it
 
 pb keeps the **most recent 300** records and deletes the JSON and `.log` of
 anything beyond that. It never removes the `.pb/runs/` directory itself, and a
-failure to write a record never kills a run — losing history must not cost you
+failure to write a record never kills a run - losing history must not cost you
 the output you are watching.
 
 !!! danger "Add `.pb/` to your `.gitignore`"
@@ -94,5 +94,5 @@ own `.gitignore` covers `pb-*.log` as well as `.pb/`.
 ## Unreadable records are skipped
 
 Loading the history reads every `*.json` in the directory and silently skips
-anything it cannot parse — a truncated write, a file from an older schema. A
+anything it cannot parse - a truncated write, a file from an older schema. A
 corrupt record costs you that row, not the tab.

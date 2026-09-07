@@ -49,7 +49,7 @@ def stream(
 
     `cancelled` is polled a few times a second; when it turns true the child's
     whole process group is terminated. `extra_env` is merged in last, so a
-    plugin may set ANSIBLE_* variables for this run — but not unset the pty
+    plugin may set ANSIBLE_* variables for this run - but not unset the pty
     settings the reader below depends on.
     """
     master, slave = pty.openpty()
@@ -85,7 +85,7 @@ def stream(
     # The parent holds the slave open on purpose, for the length of the read
     # loop. Closing it here makes the master report EOF the moment the child
     # exits, and on BSD that EOF discards whatever is still sitting in the pty
-    # buffer — which is where the last lines of a run live, PLAY RECAP
+    # buffer - which is where the last lines of a run live, PLAY RECAP
     # included. A short command can lose its output entirely that way.
     #
     # With a writer still open no EOF arrives, so the loop below ends the way
@@ -106,7 +106,7 @@ def stream(
             if not ready:
                 # Child is gone and the pty has nothing left. `_drain_ready` is
                 # what gives a dying child the chance to flush its last lines,
-                # so this holds for a cancelled run too — and it has to, since
+                # so this holds for a cancelled run too - and it has to, since
                 # the parent keeps a writer open and no EOF is ever coming.
                 if proc.poll() is not None and not _drain_ready(master):
                     break

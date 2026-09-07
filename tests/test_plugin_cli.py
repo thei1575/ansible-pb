@@ -1,4 +1,4 @@
-"""`pb plugin …` — the command line, and what it refuses to do.
+"""`pb plugin …` - the command line, and what it refuses to do.
 
 Installing runs third-party code later, so the interesting cases are the
 refusals: no confirmation, no terminal, nothing installed under that name.
@@ -226,7 +226,7 @@ def test_doctor_reports_a_plugin_that_will_not_import(
     out = capsys.readouterr().out
     assert "✘ pb-bad" in out
     assert "boom" in out
-    # The traceback is there too — it is the useful half when developing.
+    # The traceback is there too - it is the useful half when developing.
     assert "RuntimeError" in out
 
 

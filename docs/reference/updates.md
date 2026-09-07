@@ -1,17 +1,16 @@
 # Updating
 
-pb is installed from a git URL rather than from PyPI, so nothing on your machine
-knows to upgrade it and there is no release feed to subscribe to. Instead pb
-looks once a day, and asks.
+Current pb releases are installed from a Git URL. A daily GitHub release check
+provides version discovery and an installation command inside the application.
 
-## What you see
+## Update dialog
 
 When there is a newer release, pb opens this over whichever tab you were on:
 
 ```
- pb 0.2.0 is out — you are running 0.1.0
+ pb 0.2.0 is out - you are running 0.1.0
 
-  ## [0.2.0] — 2026-09-07
+  ## [0.2.0] - 2026-09-07
 
   ### Added
 
@@ -31,7 +30,7 @@ When there is a newer release, pb opens this over whichever tab you were on:
 | **Later**, or <kbd>esc</kbd> | Closes. pb asks again on the next day's check |
 
 <kbd>ctrl</kbd>+<kbd>u</kbd> checks on demand, ignoring both the once-a-day
-interval and anything you skipped — it is how you get a skipped version back.
+interval and anything you skipped - it is how you get a skipped version back.
 
 ## The command it runs
 
@@ -43,7 +42,7 @@ command:
 | `uv tool` | `uv tool install --force git+https://github.com/thei1575/ansible-pb@<tag>` |
 | `pipx` | `pipx install --force git+https://github.com/thei1575/ansible-pb@<tag>` |
 | `pip` | `<this python> -m pip install --upgrade git+https://github.com/thei1575/ansible-pb@<tag>` |
-| a source checkout | *nothing* — pb names the directory and leaves it to `git pull` |
+| a source checkout | *nothing* - pb names the directory and leaves it to `git pull` |
 
 You always see the whole command before it runs, the same as
 [every other command pb builds](../guide/playbooks.md). A checkout installed
@@ -57,7 +56,7 @@ tells you where the checkout is instead.
     tag is what actually moves you.
 
 The new pb is on disk as soon as the command finishes, but the running process
-is still the old one — a running Python cannot swap out the package it imported.
+is still the old one - a running Python cannot swap out the package it imported.
 pb says so rather than pretending otherwise: quit and start it again.
 
 If the install fails, pb shows you the command and its complete output instead
@@ -67,7 +66,7 @@ of claiming success.
 
 The release notes on the GitHub release, when there are any. Failing that, pb
 reads `CHANGELOG.md` from the repository and shows every entry between the
-version you are running and the one on offer — so what you are looking at is
+version you are running and the one on offer - so what you are looking at is
 what you would be getting, not just the newest entry. `## [Unreleased]` is left
 out: it is not in the release.
 
@@ -79,9 +78,9 @@ export PB_NO_UPDATE_CHECK=1     # for every invocation
 ```
 
 Either stops pb going to look on its own. <kbd>ctrl</kbd>+<kbd>u</kbd> still
-works — the opt-out means "do not go looking", not "never".
+works - the opt-out means "do not go looking", not "never".
 
-## What crosses the network
+## Network request
 
 This is the only network connection pb makes on its own. Everything else you
 see pb do is Ansible's traffic or SSH's.
@@ -101,11 +100,11 @@ proxy in the way, or GitHub rate-limiting an office full of unauthenticated
 callers all mean pb starts as usual and tries again tomorrow.
 <kbd>ctrl</kbd>+<kbd>u</kbd> says so out loud, since you asked.
 
-## What it remembers
+## Local update state
 
 `~/.config/pb/update.json`, described in
 [Files pb touches](files.md#configpbupdatejson). Two keys: when pb last
 looked, and which version you skipped. Delete it and pb starts over.
 
-Installing a version successfully clears the skip — a version you installed is
+Installing a version successfully clears the skip - a version you installed is
 not a version you declined.

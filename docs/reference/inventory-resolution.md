@@ -1,12 +1,10 @@
 # Inventory resolution
 
-pb shows exactly one inventory at a time, and derives `group_vars`, the vault
-list, the limit picker and the Status tab's host list from it. Getting it right
-matters more than anything else in pb's configuration — which is why there is
-no configuration.
+pb selects one inventory for each session. That selection supplies
+`group_vars`, group vaults, the limit picker, and the Status host list.
 
-The rule in one line: **pb follows Ansible's own precedence first, then looks
-around.**
+Explicit Ansible inventory settings take precedence. Repository discovery is
+used when none of those settings provides a path.
 
 ## The precedence
 
@@ -18,7 +16,7 @@ around.**
 | 2 | `$ANSIBLE_INVENTORY` | `from $ANSIBLE_INVENTORY` | :material-close: no (1) |
 | 3 | `[defaults] inventory` in `ansible.cfg` | `from ansible.cfg` | :material-close: no (1) |
 | 4 | Found by looking around the repo | `found in the repo` | :material-check: yes |
-| 5 | `inventories/production` | `pb's default — nothing named one` | :material-check: yes |
+| 5 | `inventories/production` | `pb's default - nothing named one` | :material-check: yes |
 
 </div>
 
@@ -26,10 +24,10 @@ around.**
 
 The first three are Ansible's own order. A path any of them names is used **even
 if it does not exist**, because a misconfiguration is worth reporting rather
-than papering over — [Doctor](../guide/doctor.md) fails the `inventory path`
-check and says `— does not exist`.
+than papering over - [Doctor](../guide/doctor.md) fails the `inventory path`
+check and says `- does not exist`.
 
-## Why pb sometimes passes `-i` and sometimes does not
+## When pb passes `-i`
 
 This is the subtle part, and it exists so that the host list pb shows you before
 an apply is the one Ansible will actually use.
@@ -37,7 +35,7 @@ an apply is the one Ansible will actually use.
 - When the path came from **`$ANSIBLE_INVENTORY` or `ansible.cfg`**, Ansible
   already knows it. pb passes nothing. Both of those accept a *comma-separated
   list* of sources, and passing `-i` would flatten a multi-source setting down
-  to its first entry — silently changing which hosts a run touches.
+  to its first entry - silently changing which hosts a run touches.
 - When the path came from **`-i`, from looking around, or from pb's default**,
   Ansible would not find it on its own, so pb passes `-i <path>` to every
   `ansible-playbook`, `ansible-inventory` and `--list-hosts` invocation it
@@ -57,8 +55,8 @@ and takes the first hit.
 For each, pb looks at its subdirectories:
 
 - Subdirectories named `group_vars` or `host_vars` are **not** environments.
-- If what remains is empty — a flat `inventories/` holding `hosts.yml` and
-  `group_vars/` — the directory itself is the inventory.
+- If what remains is empty - a flat `inventories/` holding `hosts.yml` and
+  `group_vars/` - the directory itself is the inventory.
 - Otherwise each remaining subdirectory is an environment, and pb takes the
   *environment* rather than its parent, because that is where `group_vars`
   lives. Merging every environment into one view is never what you meant.
@@ -74,8 +72,8 @@ For each, pb looks at its subdirectories:
 ### The default of last resort
 
 If the repository has nothing to find, pb settles on `inventories/production`
-and reports it as `pb's default — nothing named one`. That path very likely does
-not exist, and Doctor says so — naming a path that does not exist is more useful
+and reports it as `pb's default - nothing named one`. That path very likely does
+not exist, and Doctor says so - naming a path that does not exist is more useful
 than naming none.
 
 ## Worked examples
@@ -121,8 +119,8 @@ than naming none.
     inventory path   ✔ ok   inventories (found in the repo)
     ```
 
-    Nothing under `inventories/` is an environment — `group_vars` is
-    excluded by name — so the directory itself is the inventory.
+    Nothing under `inventories/` is an environment - `group_vars` is
+    excluded by name - so the directory itself is the inventory.
 
 === "A single file at the root"
 
@@ -135,8 +133,8 @@ than naming none.
     inventory path   ✔ ok   hosts.ini (found in the repo)
     ```
 
-    For a *file* inventory, `group_vars` is taken from beside it — the
-    file's parent directory — exactly as Ansible resolves it.
+    For a *file* inventory, `group_vars` is taken from beside it - the
+    file's parent directory - exactly as Ansible resolves it.
 
 === "A multi-source ansible.cfg"
 
@@ -159,7 +157,7 @@ than naming none.
     ```
 
     ```
-    inventory path   ✘ fail   inventories/dr (from -i) — does not exist
+    inventory path   ✘ fail   inventories/dr (from -i) - does not exist
     ```
 
     pb does not fall back. You asked for that path; it says it is not
@@ -192,6 +190,6 @@ They should agree. If they do not, the usual cause is an `ANSIBLE_CONFIG` or
 !!! note "The test suite clears `$ANSIBLE_INVENTORY`"
 
     `Repo.discover` reads the environment, so pb's own tests clear that
-    variable in an autouse fixture — a developer who has it exported must not
-    get different results from CI. Worth knowing if you are
+    variable in an autouse fixture - a developer who has it exported must not
+    get different results from CI. Account for this when
     [contributing](../project/contributing.md).

@@ -182,7 +182,7 @@ class RunScreen(Screen[int]):
 
     def action_close(self) -> None:
         if self._code is None:
-            self.notify("still running — ctrl+c cancels it first", severity="warning")
+            self.notify("still running - ctrl+c cancels it first", severity="warning")
             return
         self.dismiss(self._code)
 

@@ -94,7 +94,7 @@ def drive(app: PbApp, scenario: Callable[[Any], Coroutine[Any, Any, None]]) -> N
 
 
 async def settled(app: PbApp, pilot) -> None:
-    """Wait for the first reload — it runs in a thread — then a repaint."""
+    """Wait for the first reload - it runs in a thread - then a repaint."""
     for _ in range(100):
         await pilot.pause()
         if app.playbooks:
@@ -461,8 +461,8 @@ def test_enabling_and_disabling_from_the_tab_is_written_down(
         await pilot.press("e")
         await pilot.pause()
         assert store.get("pb-probe").enabled is False
-        # It keeps working until pb restarts — nothing is torn out from under
-        # a live UI — and the tab says so.
+        # It keeps working until pb restarts - nothing is torn out from under
+        # a live UI - and the tab says so.
         assert app.plugins.is_active("pb-probe")
 
     drive(app, scenario)
@@ -520,7 +520,7 @@ def test_an_async_action_is_awaited_and_its_failure_contained(
     repo_root: Path, linked_plugin
 ) -> None:
     """Textual awaits what an action returns, which is outside the guard the
-    call itself ran under — so the await has to be guarded too."""
+    call itself ran under - so the await has to be guarded too."""
     linked_plugin(name="pb-async", module="pb_async", body=ASYNC_ACTION)
     app = PbApp(repo_root)
 

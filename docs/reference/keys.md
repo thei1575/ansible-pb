@@ -1,8 +1,7 @@
 # Key map
 
-The same map <kbd>?</kbd> shows inside pb. Each tab has its own verbs, and the
-footer only ever offers what the focused tab can do — the letters are reused
-across tabs on purpose.
+The <kbd>?</kbd> key opens this map inside pb. The footer lists actions for the
+focused tab, so the same letter may perform a different local action elsewhere.
 
 ## Global
 
@@ -13,10 +12,10 @@ across tabs on purpose.
 | <kbd>1</kbd> … <kbd>8</kbd> | Jump to a tab |
 | <kbd>?</kbd> | This help, inside pb |
 | <kbd>ctrl</kbd>+<kbd>r</kbd> | Reload everything from disk |
-| <kbd>ctrl</kbd>+<kbd>g</kbd> | The working-tree diff — `git status` plus the diff |
-| <kbd>ctrl</kbd>+<kbd>u</kbd> | Check for a newer pb — see [Updating](updates.md) |
-| <kbd>ctrl</kbd>+<kbd>p</kbd> | Command palette — [plugins](../guide/plugins.md) can add to it |
-| <kbd>q</kbd> | Quit — refused while a run that changes something is going |
+| <kbd>ctrl</kbd>+<kbd>g</kbd> | The working-tree diff - `git status` plus the diff |
+| <kbd>ctrl</kbd>+<kbd>u</kbd> | Check for a newer pb - see [Updating](updates.md) |
+| <kbd>ctrl</kbd>+<kbd>p</kbd> | Command palette; [plugins](../guide/plugins.md) can add commands |
+| <kbd>q</kbd> | Quit - refused while a run that changes something is going |
 
 </div>
 
@@ -28,15 +27,15 @@ A yellow `●` next to a playbook or role means its files differ from `HEAD`.
 
 | Key | Does |
 |---|---|
-| <kbd>r</kbd> | Apply — asks first, after resolving the real host list |
-| <kbd>c</kbd> | Dry run — `--check --diff` |
+| <kbd>r</kbd> | Apply after confirmation with the resolved target hosts |
+| <kbd>c</kbd> | Dry run - `--check --diff` |
 | <kbd>enter</kbd> | Dry run |
 | <kbd>s</kbd> | Syntax check |
 | <kbd>o</kbd> | Show the playbook source |
 | <kbd>t</kbd> | Tags picker |
 | <kbd>l</kbd> | Limit picker |
 | <kbd>d</kbd> | `--diff` toggle |
-| <kbd>v</kbd> | Verbosity — cycles `-v` … `-vvvv`, then off |
+| <kbd>v</kbd> | Verbosity - cycles `-v` … `-vvvv`, then off |
 | <kbd>e</kbd> | Extra `ansible-playbook` arguments |
 | <kbd>x</kbd> | Clear all options |
 
@@ -50,10 +49,10 @@ The pane on the right shows the exact command your options produce.
 
 | Key | Does |
 |---|---|
-| <kbd>p</kbd> | Ping — `ansible <host> -m ping` |
-| <kbd>f</kbd> | Gather facts — `ansible <host> -m setup` |
+| <kbd>p</kbd> | Ping - `ansible <host> -m ping` |
+| <kbd>f</kbd> | Gather facts - `ansible <host> -m setup` |
 | <kbd>i</kbd> | Resolved vars, as JSON |
-| <kbd>s</kbd> | SSH into the host — leaves the TUI, returns on exit |
+| <kbd>s</kbd> | SSH into the host - leaves the TUI, returns on exit |
 | <kbd>R</kbd> | Reveal secrets, and hide them again |
 
 </div>
@@ -68,7 +67,7 @@ credential is masked until you ask. See
 
 | Key | Does |
 |---|---|
-| <kbd>r</kbd> | Probe every host over SSH — read-only |
+| <kbd>r</kbd> | Probe every host over SSH - read-only |
 | <kbd>s</kbd> | SSH into the selected host |
 
 </div>
@@ -79,7 +78,7 @@ credential is masked until you ask. See
 
 | Key | Does |
 |---|---|
-| <kbd>d</kbd> | Role defaults — `defaults/main.yml` |
+| <kbd>d</kbd> | Role defaults - `defaults/main.yml` |
 | <kbd>t</kbd> | Task files |
 
 </div>
@@ -124,7 +123,7 @@ credential is masked until you ask. See
 
 | Key | Does |
 |---|---|
-| <kbd>i</kbd> | Install one from GitHub — asks before it clones |
+| <kbd>i</kbd> | Install one from GitHub - asks before it clones |
 | <kbd>u</kbd> | Update the selected plugin |
 | <kbd>e</kbd> | Enable or disable it |
 | <kbd>r</kbd> | Remove it |
@@ -137,7 +136,7 @@ Installing, enabling and removing take effect the next time pb starts. See
 
 A plugin can bind keys of its own, on its own tab or on one of the tabs above,
 and can replace what a key already listed here does. The footer is built from
-whatever is actually bound, so it stays the truth — and `pb --no-plugins`
+whatever is actually bound, so it stays the truth - and `pb --no-plugins`
 gives you exactly the map on this page.
 
 ## While a run is on screen
@@ -146,11 +145,11 @@ gives you exactly the map on this page.
 
 | Key | Does |
 |---|---|
-| <kbd>ctrl</kbd>+<kbd>c</kbd> | Cancel — terminates the child's whole process group |
+| <kbd>ctrl</kbd>+<kbd>c</kbd> | Cancel - terminates the child's whole process group |
 | <kbd>w</kbd> | Toggle wrapping |
 | <kbd>s</kbd> | Save the log to `pb-<label>-<timestamp>.log` |
 | <kbd>g</kbd> / <kbd>G</kbd> | Top / bottom |
-| <kbd>esc</kbd> or <kbd>q</kbd> | Close — refused while still running |
+| <kbd>esc</kbd> or <kbd>q</kbd> | Close - refused while still running |
 
 </div>
 

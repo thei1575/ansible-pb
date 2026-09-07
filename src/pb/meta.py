@@ -87,7 +87,7 @@ def _find_inventory(root: Path) -> Path | None:
     """Look around the repo for something that looks like an inventory.
 
     A repo laid out as `inventories/<env>/` gets the environment directory
-    rather than its parent, because that is where group_vars lives — and
+    rather than its parent, because that is where group_vars lives - and
     merging every environment into one view is never what you meant.
     """
     for name in INVENTORY_DIRS:
@@ -113,7 +113,7 @@ def _find_inventory(root: Path) -> Path | None:
     return None
 
 # ansible resolves these two itself, so pb must not pass `-i` when the path
-# came from one of them — doing so would flatten a multi-source setting down
+# came from one of them - doing so would flatten a multi-source setting down
 # to its first entry.
 ANSIBLE_KNOWS = ("ansible.cfg", "ANSIBLE_INVENTORY")
 
@@ -124,7 +124,7 @@ INVENTORY_ORIGINS = {
     "ANSIBLE_INVENTORY": "from $ANSIBLE_INVENTORY",
     "ansible.cfg": "from ansible.cfg",
     "found": "found in the repo",
-    "default": "pb's default — nothing named one",
+    "default": "pb's default - nothing named one",
 }
 
 
@@ -159,8 +159,8 @@ class Repo:
     def discover(cls, root: Path, inventory: str | Path | None = None) -> Repo:
         """Resolve the inventory the way ansible does, then fall back.
 
-        `--inventory`, then $ANSIBLE_INVENTORY, then ansible.cfg — ansible's own
-        precedence — then a look around the repo, then the historical default.
+        `--inventory`, then $ANSIBLE_INVENTORY, then ansible.cfg - ansible's own
+        precedence - then a look around the repo, then the historical default.
         A path that any of the first three name is honoured even if it does not
         exist, because a misconfiguration is worth reporting, not papering over.
         """

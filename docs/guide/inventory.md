@@ -2,9 +2,9 @@
 
 <kbd>2</kbd>
 
-Hosts, groups and *fully resolved* variables, straight from
-`ansible-inventory --list`. Not pb's reading of your YAML — Ansible's, with
-group inheritance, `host_vars`, and the vaults all already applied.
+Hosts, groups, and fully resolved variables come from
+`ansible-inventory --list`, including group inheritance, `host_vars`, and
+decrypted vault data.
 
 The pane on the right shows the selected host: its address, its groups, and its
 resolved variables with anything credential-shaped masked.
@@ -17,7 +17,7 @@ resolved variables with anything credential-shaped masked.
 |---|---|---|
 | <kbd>p</kbd> | Ping the host | `ansible <host> -m ping` |
 | <kbd>f</kbd> | Gather facts | `ansible <host> -m setup` |
-| <kbd>i</kbd> | Resolved vars, as JSON | nothing — already loaded |
+| <kbd>i</kbd> | Resolved vars, as JSON | nothing - already loaded |
 | <kbd>s</kbd> | SSH into the host | `ssh <ansible_user>@<address>` |
 | <kbd>R</kbd> | Reveal / re-mask secrets | nothing |
 
@@ -55,12 +55,12 @@ numbers, booleans, lists and dicts visible.
 
 <kbd>R</kbd> toggles revealing for the whole tab, and pb warns you on screen
 when you turn it on. <kbd>i</kbd> respects the current setting and says which
-mode it is in in its title: `web01 — resolved vars (secrets masked)`.
+mode it is in in its title: `web01 - resolved vars (secrets masked)`.
 
 !!! danger "The mask is a courtesy, not a boundary"
 
     It guards against shoulder-surfing and screen-sharing. Anyone with your
-    terminal, your repo and your vault password can read the values anyway —
+    terminal, your repo and your vault password can read the values anyway -
     that is what the [Vault](vault.md) tab is for. Do not screen-share the
     Inventory tab with values revealed. See [Security](../project/security.md).
 
@@ -73,10 +73,10 @@ shows it.
 
 The practical effect: "no hosts" tells you *why*.
 
-- A **warning** — an unparsable file in the inventory directory, a plugin that
-  declined — is shown as a warning in Doctor and the hosts pb did find are
+- A **warning** - an unparsable file in the inventory directory, a plugin that
+  declined - is shown as a warning in Doctor and the hosts pb did find are
   still listed.
-- A real **error** — a missing inventory path, a vault it cannot decrypt — is
+- A real **error** - a missing inventory path, a vault it cannot decrypt - is
   shown as an error, with Ansible's own message.
 
 If neither appears and the list is genuinely empty, the inventory pb is reading

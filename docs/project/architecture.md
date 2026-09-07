@@ -1,27 +1,26 @@
 # Architecture
 
-pb is about 5,900 lines of Python: one module per concern, and five invariants
-that decide what belongs in it.
+pb separates repository inspection, command execution, run presentation,
+history, host probes, plugins, updates, and interface components into focused
+modules. Five project rules govern changes across those modules.
 
 ## The invariants
 
-### pb never reimplements Ansible { #pb-never-reimplements-ansible }
+### Ansible owns execution semantics { #ansible-owns-execution-semantics }
 
-Everything that touches infrastructure shells out to `ansible-playbook`,
-`ansible-inventory` or `ansible-vault`, and the exact command is shown before it
-runs.
+Infrastructure actions invoke `ansible-playbook`, `ansible-inventory`, or
+`ansible-vault`, with the exact command visible before execution.
 
-This is the whole design, not a convenience. A tool that parsed Ansible
-semantics itself would drift from Ansible, and the drift would be silent and in
-production. So the tag picker asks `--list-tags`. The host list asks
-`--list-hosts`. The inventory is `ansible-inventory --list`, resolved, not pb's
-reading of your YAML. A vault is written only by invoking `ansible-vault`.
+The tag picker uses `--list-tags`, the host list uses `--list-hosts`, and the
+inventory comes from `ansible-inventory --list`. Vault writes use
+`ansible-vault`. This boundary keeps execution behaviour aligned with the
+repository's Ansible installation, configuration, and plugins.
 
-The visible cost is the places pb *cannot* be clever: `include_role` is not
-followed in the [Roles](../guide/roles.md) tab, because following it means
-parsing task semantics. That is the trade accepted on purpose.
+The Roles view indexes direct `roles:` declarations. Following `include_role`
+would require task-semantic parsing, so dynamic role use remains outside that
+index.
 
-### Nothing runs on the UI thread
+### Shell commands run outside the UI thread
 
 Anything that shells out is slow enough to freeze Textual. Every such call goes
 through a `@work(thread=True)` worker and comes back with `call_from_thread`.
@@ -37,22 +36,21 @@ plaintext credentials arrive in pb's memory whether it wants them or not.
 Anything credential-shaped is masked until the user asks. Any new view over
 inventory data has to run through `meta.redact()`.
 
-### Read-only means read-only
+### Read views preserve state
 
 Inventory, Status, Roles and Doctor must not mutate a host or the repo. Only
 Playbooks and Vault write, and only through Ansible.
 
-### A plugin cannot take pb down { #a-plugin-cannot-take-pb-down }
+### Plugin failures are contained { #a-plugin-cannot-take-pb-down }
 
 pb imports third-party code into its own process, which means the console's
 reliability would otherwise be the reliability of the least careful plugin
 installed.
 
-So every call into plugin code goes through `PluginHost`, which catches
-whatever comes out, switches that plugin off for the rest of the session,
-removes its tabs, hands any action it replaced back to the built-in, and turns
-the failure into a [Doctor](../guide/doctor.md) row. A plugin costs you that
-plugin, never your console.
+Every call into plugin code goes through `PluginHost`. It catches exceptions,
+switches the plugin off for the rest of the session, removes its tabs, restores
+replaced built-in actions, and adds the failure to
+[Doctor](../guide/doctor.md). Other application features remain available.
 
 The other half of it is that the plugin surface is *versioned*.
 `pb.plugins.api` is what third-party code imports; adding an optional hook is
@@ -78,7 +76,7 @@ src/pb/
   plugins/        the plugin system                              (1691)
     cli.py          `pb plugin …`                                (322)
     host.py         binding plugins into the running app         (287)
-    api.py          what a plugin imports — the versioned surface (283)
+    api.py          what a plugin imports - the versioned surface (283)
     scaffold.py     `pb plugin new`                              (256)
     source.py       resolving owner/repo, and cloning it          (239)
     loader.py       importing plugin code, failures contained     (216)
@@ -87,7 +85,7 @@ src/pb/
     manifest.py     pb-plugin.toml, read before any plugin code   (139)
 ```
 
-### `meta.py` — what pb knows
+### `meta.py` - what pb knows
 
 Everything the UI knows about playbooks, inventory, roles and vaults is derived
 here, and nothing here knows about Textual.
@@ -100,20 +98,19 @@ all, and what Doctor prints. Keeping the origin rather than just the path is
 what makes that decision possible later.
 
 `redact()` and `SECRET_KEY_RE` live here too, next to the code that loads the
-plaintext — deliberately, so the masking is impossible to miss when you touch
+plaintext - deliberately, so the masking is impossible to miss when you touch
 the loader.
 
-### `runner.py` — the pty
+### `runner.py` - the pty
 
 The child gets a pty rather than a pipe, because Ansible only emits colour when
 it believes it is talking to a terminal, and looking at that output is the point
 of the tool. It also gets `start_new_session=True`, so cancelling can kill the
-whole process group — the forks Ansible spawned, not just Ansible.
+whole process group - the forks Ansible spawned, not just Ansible.
 
-The read loop has one subtlety worth knowing before you touch it. **The parent
-keeps the pty slave open for the length of the loop, on purpose.** Closing it
+The parent keeps the pty slave open for the length of the read loop. Closing it
 after the spawn makes the master report EOF the moment the child exits, and on
-BSD that EOF discards whatever is still sitting in the pty buffer — which is
+BSD that EOF discards whatever is still sitting in the pty buffer - which is
 where the last lines of a run live, `PLAY RECAP` included. A short command can
 lose its output entirely that way.
 
@@ -125,36 +122,36 @@ to flush, which is why cancelling still shows you what it managed to print.
 This is exactly the class of bug that only appears on one platform, which is why
 CI runs the suite once on macOS.
 
-### `run.py` — the run view
+### `run.py` - the run view
 
 Owns one command from spawn to record. The worker appends lines to a `deque`; a
 timer drains it into a `RichLog` every 80 ms and re-renders the status line,
 which is how a run that prints thousands of lines stays responsive. The recap is
 re-parsed on each tick so the counters update live.
 
-When the run ends it writes the [history](../guide/history.md) record — from the
+When the run ends it writes the [history](../guide/history.md) record - from the
 run view, not the app, so nothing has to remember to do it.
 
-### `history.py` — the record
+### `history.py` - the record
 
 A JSON sidecar plus the captured output, per run, under `.pb/runs/`. `record()`
 is written to never raise: losing history must not kill a run.
 
-### `hoststatus.py` — the probe
+### `hoststatus.py` - the probe
 
 One compound shell script, fed to `ssh … bash -s` on **stdin** so nothing has to
 survive shell quoting. It emits `key=value` lines and omits anything
 unavailable, which is what keeps it portable across whatever a host runs. It
 only ever reads. See [Status](../guide/status.md).
 
-### `app.py` — the tabs
+### `app.py` - the tabs
 
 The `App`, the eight tabs, and every binding.
 
 Two structural things:
 
 **Bindings live on the table that owns the verb**, not on the app, so the footer
-only ever offers what the focused tab can actually do — which is why <kbd>r</kbd>
+only ever offers what the focused tab can actually do - which is why <kbd>r</kbd>
 is "run" in Playbooks and "refresh" in Status. The *actions* live on the app,
 hence the explicit `app.` namespace in each `Binding`: a widget binding does not
 bubble on its own.
@@ -163,14 +160,14 @@ bubble on its own.
 another pane posts `TabPane.Focused` and yanks the tab back, so switching tabs
 has to move focus into the new pane, which is what `_focus_pane` is for.
 
-### `plugins/` — the extension points
+### `plugins/` - the extension points
 
 `api.py` is the whole third-party surface: the `Plugin` base class whose every
 method is optional, and the dataclasses for what a plugin contributes. Nothing
 else in the package is something a plugin imports.
 
 `host.py` is the only module that knows both sides. It takes what a plugin
-contributes and puts it into the widget tree — panes through
+contributes and puts it into the widget tree - panes through
 `TabbedContent.add_pane`, keys through the target widget's own `BindingsMap`,
 and actions by setting `action_<name>` on the app instance, which is exactly
 how Textual dispatches them. That last one is why replacing a built-in needed
@@ -179,7 +176,7 @@ before.
 
 Installing and importing are kept apart on purpose. `manage.py` and
 `source.py` clone and record; `loader.py` imports. Nothing a plugin ships runs
-at install time, and the manifest — including its API version — is read before
+at install time, and the manifest - including its API version - is read before
 any of its code is.
 
 One ordering detail worth knowing: `before_run` hooks fire in
@@ -189,8 +186,8 @@ that pb only runs what it has shown you survives plugins.
 
 ## The test suite
 
-`tests/` builds a throwaway Ansible repository in `tmp_path` — an
-`ansible.cfg`, a couple of playbooks, a role, an inventory and a vault — and
+`tests/` builds a throwaway Ansible repository in `tmp_path` - an
+`ansible.cfg`, a couple of playbooks, a role, an inventory and a vault - and
 runs against that. It needs **no `ansible` binary and no network**, which is why
 CI can run it on four interpreters in under a minute.
 
@@ -213,17 +210,15 @@ CI can run it on four interpreters in under a minute.
 | `test_plugin_cli.py` | `pb plugin …` and its refusals |
 
 Use the `repo` fixture rather than mocking `Path`. `Repo.discover` reads
-`$ANSIBLE_INVENTORY`, so an autouse fixture clears it — a developer who has it
+`$ANSIBLE_INVENTORY`, so an autouse fixture clears it. A developer who has it
 exported must not get different results from CI. Another points `$PB_HOME` at
-`tmp_path`, so nothing pb writes outside the repo — the update state, the
-installed plugins — ever touches the config of whoever is running the tests.
+`tmp_path`, keeping update state and installed plugins out of the developer's
+configuration.
 
-Two things need more than a fixture repository. Installing a plugin "from
-GitHub" is cloning a git URL, and a local repository is such a URL, so
+Plugin installation tests clone from local git repositories. The
 `plugin_git_repo` builds one and the install, update and pin paths run end to
-end with no network. And `test_plugin_app.py` drives a real Textual app in
-headless mode, because a tab that never mounted and a key that never bound are
-failures no unit test can see.
+end without network access. `test_plugin_app.py` drives a real Textual app in
+headless mode to verify tab mounting and key bindings.
 
 ## Wanting to change something
 

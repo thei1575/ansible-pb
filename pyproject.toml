@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "ansible-pb"
 dynamic = ["version"]
-description = "A terminal console for an Ansible repository: run playbooks, read the inventory, probe hosts, manage vaults."
+description = "Run control for Ansible repositories."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -30,6 +30,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/thei1575/ansible-pb"
+Documentation = "https://thei1575.github.io/ansible-pb/"
 Issues = "https://github.com/thei1575/ansible-pb/issues"
 Changelog = "https://github.com/thei1575/ansible-pb/blob/main/CHANGELOG.md"
 Source = "https://github.com/thei1575/ansible-pb"

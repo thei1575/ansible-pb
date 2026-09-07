@@ -5,10 +5,13 @@ module. pb clones it, imports it at start-up, and lets it add tabs, keys and
 [Doctor](../guide/doctor.md) checks, react to every run, or replace something
 the base app already does.
 
-This page is the authoring reference. For installing, updating and what
-trusting a plugin means, see [Plugins](../guide/plugins.md).
+This page is the API reference. Start with [Build your first plugin](../plugins/quickstart.md).
+The [hook cookbook](../plugins/hooks.md) provides complete patterns, and
+[Architecture and lifecycle](../plugins/architecture.md) covers ordering,
+threads, state, and failure handling. For installation and trust, see
+[Plugins](../guide/plugins.md).
 
-## The five-minute version
+## Create a plugin
 
 ```bash
 pb plugin new pb-mine        # writes a working plugin and inits a git repo
@@ -18,10 +21,9 @@ pb plugin doctor             # does the manifest parse? does it import?
 pb ~/my-ansible-repo         # there is your tab
 ```
 
-`pb plugin new` scaffolds a plugin that uses most of the hooks, so the fastest
-way to learn the API is to run it and delete what you do not want. Edit, then
-restart pb: plugin code is imported once, and pb will not pretend to swap it
-under a live UI.
+`pb plugin new` scaffolds a working plugin that demonstrates most hooks. Remove
+the hooks your plugin does not need, edit the remaining implementation, and
+restart pb to load the change. Plugin code is imported once during startup.
 
 When it works, push it to GitHub and anyone can install it:
 
@@ -33,7 +35,7 @@ pb plugin install your-name/pb-mine
 
 ```
 pb-mine/
-  pb-plugin.toml      the manifest — pb reads this before importing anything
+  pb-plugin.toml      the manifest - pb reads this before importing anything
   pb_mine/
     __init__.py       the module, defining a Plugin subclass
     style.tcss        optional stylesheet, loaded with pb's own
@@ -61,7 +63,7 @@ than importing it and failing halfway; `pb plugin doctor` prints the version
 this pb speaks. Nothing in the manifest may point outside the plugin
 directory, and `module` may not be `pb`.
 
-Two installed plugins cannot declare the same `module` — they share
+Two installed plugins cannot declare the same `module` - they share
 `sys.path`, so one would shadow the other. pb reports that instead of picking.
 
 ## The Plugin class
@@ -75,8 +77,8 @@ class Mine(Plugin):
         self.notify(f"reading {self.repo.root}")
 ```
 
-pb instantiates every `Plugin` subclass your module defines. To be explicit —
-or to keep a base class out of it — set `PB_PLUGIN` to the class, an instance,
+pb instantiates every `Plugin` subclass your module defines. To be explicit -
+or to keep a base class out of it - set `PB_PLUGIN` to the class, an instance,
 or a list:
 
 ```python
@@ -87,7 +89,7 @@ Before `activate()` runs, pb fills in `name`, `version`, `summary`, `root`
 (your directory), `data_dir` (a private directory for your own state) and
 `app`. Every hook is optional.
 
-### What a plugin can read
+### Available state
 
 | | |
 |---|---|
@@ -102,11 +104,11 @@ Before `activate()` runs, pb fills in `name`, `version`, `summary`, `root`
 `meta.capture(argv, cwd)` shells out and returns `(code, output)`,
 `meta.redact(vars)` masks anything credential-shaped.
 
-### What a plugin can do
+### Available operations
 
 | | |
 |---|---|
-| `self.launch(argv, label, mode="ad-hoc")` | run a command the way pb runs its own — full screen, streamed, recorded in history. `mode` is what the hooks see |
+| `self.launch(argv, label, mode="ad-hoc")` | run a command the way pb runs its own - full screen, streamed, recorded in history. `mode` is what the hooks see |
 | `self.notify(message, severity=…, timeout=5)` | a toast |
 | `self.view(title, body, lexer=None)` | pb's scrollable viewer |
 | `self.reload()` | re-read the repo and repaint every tab |
@@ -119,7 +121,7 @@ Before `activate()` runs, pb fills in `name`, `version`, `summary`, `root`
 
 `activate()` runs once, after your tabs are mounted and before the repo has
 been read. Add columns here. `reloaded()` runs every time pb has re-read the
-repo — on start-up, on `ctrl+r`, and after every run — which is where a tab of
+repo - on start-up, on `ctrl+r`, and after every run - which is where a tab of
 your own fills itself in.
 
 ```python
@@ -130,12 +132,12 @@ def reloaded(self) -> None:
     table = self.app.query_one("#mine-table", DataTable)
     table.clear()
     for host in self.inventory.hosts:
-        table.add_row(host.name, "—")
+        table.add_row(host.name, "-")
 ```
 
 `deactivate()` runs when pb exits cleanly.
 
-### `tabs()` — a tab of your own
+### `tabs()` - a tab of your own
 
 ```python
 def tabs(self):
@@ -157,16 +159,16 @@ def _pane(self):
 ```
 
 `classes="split"` and `classes="detail"` are pb's own, so a plugin tab looks
-like a built-in one. `focus` has to name a focusable widget — a `DataTable`,
-an `Input`, a container with `can_focus` — because key bindings on your
+like a built-in one. `focus` has to name a focusable widget - a `DataTable`,
+an `Input`, a container with `can_focus` - because key bindings on your
 widgets do not fire until something inside the pane has focus.
 
-### `keys()` and `actions()` — including replacing pb's own
+### `keys()` and `actions()` - including replacing pb's own
 
 Bindings live on the widget that owns the verb, as they do in pb, so the
-footer offers them only while that tab has focus. `target` is a widget id —
+footer offers them only while that tab has focus. `target` is a widget id -
 `playbooks`, `hosts`, `roles`, `vaults`, `status`, `history`, `doctor`,
-`plugins`, one of yours — or the literal `app` for a binding that works
+`plugins`, one of yours - or the literal `app` for a binding that works
 everywhere.
 
 ```python
@@ -192,7 +194,7 @@ def run_with_a_ticket(self):
 ```
 
 `base_action(name)` returns whatever was there before *your* plugin took over
-— the built-in, or an earlier plugin's replacement. Plugins are loaded in
+- the built-in, or an earlier plugin's replacement. Plugins are loaded in
 install order, so the last one to claim a name wins; `pb plugin list` shows
 that order.
 
@@ -210,14 +212,14 @@ pb's own actions, all replaceable this way:
 | Plugins | `plugin_install` `plugin_update` `plugin_toggle` `plugin_remove` `plugin_info` |
 | Global | `help` `reload` `changes` `quit` `tab` |
 
-### `commands()` — the command palette
+### `commands()` - the command palette
 
 ```python
 def commands(self):
     yield Command(title="Re-probe drift", callback=self.show_drift, help="ctrl+p")
 ```
 
-### `doctor()` — extra preflight checks
+### `doctor()` - extra preflight checks
 
 Runs in a worker thread, so it may shell out.
 
@@ -227,10 +229,10 @@ def doctor(self):
     yield CheckResult("terraform", code == 0, out.splitlines()[0] if out else "not found")
 ```
 
-`ok` is `True` for a pass, `False` for a failure, `None` for a warning — the
+`ok` is `True` for a pass, `False` for a failure, `None` for a warning - the
 same three states the built-in checks use.
 
-### `before_run()` — inspect, edit or stop a command
+### `before_run()` - inspect, edit or stop a command
 
 ```python
 def before_run(self, request: RunRequest) -> None:
@@ -250,7 +252,7 @@ shown: the hooks run before the confirmation dialog, so pb never runs a
 command it has not displayed. `request.env` is merged into the child's
 environment. `veto()` stops the run and names your plugin in the message.
 
-### `after_run()` — once it has finished and been recorded
+### `after_run()` - once it has finished and been recorded
 
 ```python
 def after_run(self, result: RunResult) -> None:
@@ -259,15 +261,15 @@ def after_run(self, result: RunResult) -> None:
 ```
 
 `result` carries `argv`, `label`, `exit_code`, `duration`, the parsed
-`recap`, every output `line`, and `run` — the `history.Run` just written to
+`recap`, every output `line`, and `run` - the `history.Run` just written to
 `.pb/runs`.
 
 This fires for the runs pb streams on the run screen, which are the ones it
-records. Anything that leaves the TUI for a real terminal — an ssh session,
-`ansible-vault edit`, a playbook with `vars_prompt` — is not recorded and does
+records. Anything that leaves the TUI for a real terminal - an ssh session,
+`ansible-vault edit`, a playbook with `vars_prompt` - is not recorded and does
 not arrive here. `before_run` still sees all of them.
 
-### `detail()` — add to a core detail pane
+### `detail()` - add to a core detail pane
 
 ```python
 def detail(self, pane: str, subject) -> Text | None:
@@ -280,7 +282,7 @@ def detail(self, pane: str, subject) -> Text | None:
 `subject` is the object that pane is showing. A plain `str` is accepted too,
 here and in `status_bar()`.
 
-### `status_bar()` — a segment on the top strip
+### `status_bar()` - a segment on the top strip
 
 ```python
 def status_bar(self) -> Text | None:
@@ -289,17 +291,17 @@ def status_bar(self) -> Text | None:
 
 ## When a plugin breaks
 
-pb catches everything a hook raises. The plugin is switched off for the rest
-of the session, its tabs are removed, a notification says which hook failed,
-and it becomes a failed check on the Doctor tab — but pb keeps running. That
-is deliberate: a plugin costs you that plugin, never your console.
+pb catches exceptions raised by hooks. The plugin is switched off for the rest
+of the session, its tabs are removed, a notification identifies the failed
+hook, and Doctor records the failure. Other application features remain
+available.
 
 While developing, `pb plugin doctor` is faster than starting the TUI: it loads
 every plugin, prints the hooks each one overrides, and prints the traceback
 for any that will not import.
 
 Threads: `doctor()` runs in a worker thread. Every other hook runs on the UI
-thread and must not block — use `self.app.run_worker(…, thread=True)` or
+thread and must not block - use `self.app.run_worker(…, thread=True)` or
 `self.launch()` for anything that shells out. This is pb's own rule, for the
 same reason: Textual freezes.
 
@@ -324,18 +326,18 @@ pb plugin install git@github.internal:ops/pb-mine.git
 pb plugin install https://gitlab.example/ops/pb-mine.git#v2
 ```
 
-## Where things live
+## Storage paths
 
 ```
 ~/.config/pb/                  or $PB_HOME, or $XDG_CONFIG_HOME/pb
   plugins.json                 what is installed, and at which commit
-  plugins/<name>/              the clone — pb owns this; updates reset it
+  plugins/<name>/              the clone - pb owns this; updates reset it
   state/<name>/                your plugin's own data_dir
 ```
 
-`plugins.json` is the source of truth: a directory pb has no record of is
-ignored, so a failed install cannot come back to life. pb owns the clones, so
-`pb plugin update` discards local edits in them — develop against a checkout
+`plugins.json` records installed plugins. A directory absent from that record
+is ignored. pb owns the clones, so
+`pb plugin update` discards local edits in them - develop against a checkout
 of your own with `pb plugin link`, which pb reads in place and never touches
 with git.
 

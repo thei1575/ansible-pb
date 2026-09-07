@@ -1,4 +1,4 @@
-"""pb — a console for driving an Ansible repo.
+"""pb: run control for Ansible repositories.
 
 Tabs mirror the repo's own structure: playbooks you run, the inventory they
 run against, the roles they compose, the vaults that hold the secrets, and a
@@ -97,7 +97,7 @@ class RunOptions:
         part("limit", self.limit or "all", bool(self.limit))
         part("diff", "on" if self.diff else "off", self.diff)
         part("-v", str(self.verbosity) or "0", bool(self.verbosity))
-        part("extra", self.extra or "—", bool(self.extra))
+        part("extra", self.extra or "-", bool(self.extra))
         text.append(" t·l·d·v·e edit  x clear", style="dim")
         return text
 
@@ -107,7 +107,7 @@ class RunOptions:
 
 # Bindings live on the table that owns the verb, so the footer only offers
 # what the focused tab can do. The actions themselves live on the app, hence
-# the explicit `app.` namespace — a widget binding does not bubble on its own.
+# the explicit `app.` namespace - a widget binding does not bubble on its own.
 class PlaybookTable(DataTable):
     BINDINGS = [
         Binding("r", "app.run", "Run"),
@@ -361,8 +361,8 @@ class PbApp(App[None]):
                 Text((DIRTY if dirty_pb else CLEAN) + pb.name,
                      style="bold yellow" if dirty_pb else "bold"),
                 Text(pb.kind, style=kind_style),
-                ", ".join(pb.targets) or ("→ " + ", ".join(pb.imports) if pb.imports else "—"),
-                str(len(pb.roles)) if pb.roles else "—",
+                ", ".join(pb.targets) or ("→ " + ", ".join(pb.imports) if pb.imports else "-"),
+                str(len(pb.roles)) if pb.roles else "-",
                 Text(_short(pb.summary), style="dim"),
                 key=pb.name,
             )
@@ -372,7 +372,7 @@ class PbApp(App[None]):
         for host in inventory.hosts:
             hosts.add_row(
                 Text(host.name, style="bold"),
-                host.address or "—",
+                host.address or "-",
                 Text(", ".join(host.groups), style="dim"),
                 key=host.name,
             )
@@ -385,7 +385,7 @@ class PbApp(App[None]):
                 Text((DIRTY if dirty_role else CLEAN) + role.name,
                      style="bold yellow" if dirty_role else "bold"),
                 str(role.tasks),
-                Text(", ".join(role.parts) or "—", style="dim"),
+                Text(", ".join(role.parts) or "-", style="dim"),
                 Text(", ".join(role.used_by) or "unused", style="dim" if role.used_by else "red"),
                 key=role.name,
             )
@@ -422,7 +422,7 @@ class PbApp(App[None]):
 
     def _render_statusbar(self, branch: str, dirty: int) -> None:
         text = Text()
-        text.append(" pb ", style="bold white on dark_blue")
+        text.append(" pb ", style="bold #111820 on #c77b16")
         text.append(f" {self.repo.root.name} ", style="bold")
         if branch:
             text.append(f"⎇ {branch}", style="cyan")
@@ -486,7 +486,7 @@ class PbApp(App[None]):
     def _selection_moved(self, event: DataTable.RowHighlighted) -> None:
         which = event.data_table.id
         # Filling a table queues one of these per row, and they are dispatched
-        # after the fact — including while the app is being torn down, when
+        # after the fact - including while the app is being torn down, when
         # the pane they would draw into has already gone. There is nothing to
         # redraw then, and nothing worth a traceback on the way out. A plugin
         # tab that was pulled out from under one counts too.
@@ -547,7 +547,7 @@ class PbApp(App[None]):
                 text.append(f"  {role}\n")
             text.append("\n")
         if pb.interactive:
-            text.append("prompts for input — runs in the foreground\n\n", style="yellow")
+            text.append("prompts for input - runs in the foreground\n\n", style="yellow")
         text.append("would run\n", style="bold")
         text.append(_wrap(" ".join(shlex.quote(a) for a in self._argv(pb, "run"))), style="green")
         self._plugin_detail("playbook", pb, text)
@@ -570,8 +570,8 @@ class PbApp(App[None]):
             text.append(f"  {group}\n", style="cyan")
         text.append("\nkey vars", style="bold")
         text.append(
-            "   (secrets revealed — R hides)\n" if self.reveal_secrets
-            else "   (secrets masked — R reveals)\n",
+            "   (secrets revealed - R hides)\n" if self.reveal_secrets
+            else "   (secrets masked - R reveals)\n",
             style="yellow" if self.reveal_secrets else "dim",
         )
         values = host.vars if self.reveal_secrets else meta.redact(host.vars)
@@ -590,7 +590,7 @@ class PbApp(App[None]):
                 style="red" if hidden else "yellow" if revealed else "",
             )
         if len(interesting) > 24:
-            text.append(f"  … {len(interesting) - 24} more — press i\n", style="dim")
+            text.append(f"  … {len(interesting) - 24} more - press i\n", style="dim")
         self._plugin_detail("host", host, text)
         target.update(text)
 
@@ -639,7 +639,7 @@ class PbApp(App[None]):
     def _render_status_table(self) -> None:
         table = self.query_one("#status", DataTable)
         table.clear()
-        blank = ("—", "—", "—", "—")
+        blank = ("-", "-", "-", "-")
         for host in self.inventory.hosts:
             probe = self.host_status.get(host.name)
             name = Text(host.name, style="bold")
@@ -649,7 +649,7 @@ class PbApp(App[None]):
                               Text("press r to probe", style="dim"), key=host.name)
                 continue
             if probe.local:
-                table.add_row(name, Text("— local", style="dim"), *blank,
+                table.add_row(name, Text("- local", style="dim"), *blank,
                               Text("not probed", style="dim"), key=host.name)
                 continue
             if not probe.reachable:
@@ -681,7 +681,7 @@ class PbApp(App[None]):
         text.append(f"{host.name}\n", style="bold bright_cyan")
         text.append(f"{host.address}\n\n", style="dim")
         if probe is None:
-            text.append("not probed yet — press r\n", style="dim")
+            text.append("not probed yet - press r\n", style="dim")
             target.update(text)
             return
         if probe.local or not probe.reachable:
@@ -699,7 +699,7 @@ class PbApp(App[None]):
         text.append("\nhousekeeping\n", style="bold")
         updates = probe.get("updates", "0")
         text.append("  updates   ", style="dim")
-        text.append(f"{updates} pending\n", style="cyan" if updates not in ("0", "—") else "")
+        text.append(f"{updates} pending\n", style="cyan" if updates not in ("0", "-") else "")
         text.append("  reboot    ", style="dim")
         reboot = probe.get("reboot")
         text.append(f"{reboot}\n", style="yellow" if reboot == "yes" else "green")
@@ -733,7 +733,7 @@ class PbApp(App[None]):
                 Text(run.label, style="bold" if run.applied else ""),
                 result,
                 f"{run.duration:.0f}s",
-                Text(run.recap_summary() or "—", style="dim"),
+                Text(run.recap_summary() or "-", style="dim"),
                 key=run.id,
             )
 
@@ -878,7 +878,7 @@ class PbApp(App[None]):
 
         if mode == "run":
             # Patterns are not an answer to "what am I about to change", so ask
-            # ansible for the real host list before showing the confirmation.
+            # ansible for the resolved target hosts before showing confirmation.
             self.notify("resolving which hosts this would touch…")
             self._confirm_apply(pb, request.argv, go)
         else:
@@ -902,14 +902,14 @@ class PbApp(App[None]):
                 address = f"  {host.address}" if host and host.address else ""
                 body.append(f"  {name}{address}\n", style="yellow")
         else:
-            body.append("  (could not resolve — check the playbook)\n", style="red")
+            body.append("  (could not resolve - check the playbook)\n", style="red")
         if self.options.tags:
             body.append(f"\nonly tags: {','.join(self.options.tags)}", style="cyan")
         if self.options.limit:
             body.append(f"\nlimited to: {self.options.limit}", style="cyan")
         dirty = len(self.changed)
         if dirty:
-            body.append(f"\n\n{dirty} uncommitted change(s) in the repo — ctrl+g to see them",
+            body.append(f"\n\n{dirty} uncommitted change(s) in the repo - ctrl+g to see them",
                         style="yellow")
         self.push_screen(Confirm(f"Apply {pb.name}?", body, "Apply"), go)
 
@@ -960,7 +960,7 @@ class PbApp(App[None]):
         )
 
     def action_limit(self) -> None:
-        choices = [("", "all — every host the play targets")]
+        choices = [("", "all - every host the play targets")]
         choices += [(g, f"{g}  (group: {', '.join(m)})") for g, m in self.inventory.groups.items()]
         choices += [(h.name, f"{h.name}  (host: {h.address})") for h in self.inventory.hosts]
 
@@ -1019,7 +1019,7 @@ class PbApp(App[None]):
         suffix = "revealed" if self.reveal_secrets else "secrets masked"
         self.push_screen(
             Viewer(
-                f"{host.name} — resolved vars ({suffix})",
+                f"{host.name} - resolved vars ({suffix})",
                 json.dumps(values, indent=2, default=str),
                 "json",
             )
@@ -1029,7 +1029,7 @@ class PbApp(App[None]):
         self.reveal_secrets = not self.reveal_secrets
         self._render_host_detail()
         if self.reveal_secrets:
-            self.notify("secrets are on screen — R hides them again", severity="warning")
+            self.notify("secrets are on screen - R hides them again", severity="warning")
 
     def action_ssh(self) -> None:
         host = self.host
@@ -1067,7 +1067,7 @@ class PbApp(App[None]):
                 self._view_file(Path(value), role.name)
 
         self.push_screen(
-            PickOne(f"{role.name} — task files", [(str(f), f.name) for f in files]), done
+            PickOne(f"{role.name} - task files", [(str(f), f.name) for f in files]), done
         )
 
     def _view_file(self, path: Path, prefix: str) -> None:
@@ -1085,7 +1085,7 @@ class PbApp(App[None]):
         if code != 0:
             self.notify(f"could not decrypt: {out.strip()[:120]}", severity="error", timeout=10)
             return
-        self.push_screen(Viewer(f"{vault.group} — decrypted", out, "yaml"))
+        self.push_screen(Viewer(f"{vault.group} - decrypted", out, "yaml"))
 
     def action_edit(self) -> None:
         vault = self.vault
@@ -1174,7 +1174,7 @@ class PbApp(App[None]):
     def action_show_log(self) -> None:
         run = self.run_record
         if run:
-            self.push_screen(Viewer(f"{run.label} — {run.when}", history.log_for(self.repo, run)))
+            self.push_screen(Viewer(f"{run.label} - {run.when}", history.log_for(self.repo, run)))
 
     def action_rerun(self) -> None:
         run = self.run_record
@@ -1230,8 +1230,8 @@ class PbApp(App[None]):
         upgrade = update.upgrade_command(release.tag)
         self.push_screen(
             UpdatePrompt(
-                f"pb {release.version} is out — you are running {__version__}",
-                release.notes or f"No release notes — see {release.url}",
+                f"pb {release.version} is out - you are running {__version__}",
+                release.notes or f"No release notes - see {release.url}",
                 command=runner.quote(upgrade.argv),
                 note=upgrade.manual,
                 can_install=upgrade.possible,
@@ -1245,7 +1245,7 @@ class PbApp(App[None]):
         if answer == "skip":
             update.skip(release.version)
             self.update_release = None
-            self.notify(f"skipping {release.version} — ctrl+u offers it again")
+            self.notify(f"skipping {release.version} - ctrl+u offers it again")
             return
         if answer != "update" or not upgrade.possible:
             return
@@ -1274,7 +1274,7 @@ class PbApp(App[None]):
         update.forget_skip()
         self.update_release = None
         self.notify(
-            f"pb {release.version} installed — quit and start pb again to use it",
+            f"pb {release.version} installed - quit and start pb again to use it",
             timeout=20,
         )
 
@@ -1318,7 +1318,7 @@ class PbApp(App[None]):
             add(
                 "pb",
                 None,
-                f"{__version__} — {self.update_release.version} is available (ctrl+u)",
+                f"{__version__} - {self.update_release.version} is available (ctrl+u)",
             )
 
         code, out = meta.capture(["ansible", "--version"], self.repo.root, timeout=30)
@@ -1332,7 +1332,7 @@ class PbApp(App[None]):
             "inventory path",
             inv.exists(),
             f"{self.repo.rel(inv)} ({origin})"
-            + ("" if inv.exists() else " — does not exist"),
+            + ("" if inv.exists() else " - does not exist"),
         )
 
         group_vars = self.repo.group_vars_dir
@@ -1340,16 +1340,16 @@ class PbApp(App[None]):
             "group_vars",
             group_vars.is_dir() or None,
             self.repo.rel(group_vars)
-            + ("" if group_vars.is_dir() else " — none beside the inventory"),
+            + ("" if group_vars.is_dir() else " - none beside the inventory"),
         )
 
         pw = self.repo.vault_pass_file
         if pw.exists():
             mode = oct(pw.stat().st_mode & 0o777)
             ok = mode == "0o600"
-            add("vault password", ok, f"{pw.name} {mode}" + ("" if ok else " — should be 0o600"))
+            add("vault password", ok, f"{pw.name} {mode}" + ("" if ok else " - should be 0o600"))
         else:
-            add("vault password", False, f"{pw} is missing — nothing will run")
+            add("vault password", False, f"{pw} is missing - nothing will run")
 
         collections = self.repo.root / "collections" / "ansible_collections"
         installed = (
@@ -1411,17 +1411,17 @@ class PbApp(App[None]):
         for record in self.plugin_records:
             table.add_row(
                 Text(record.name, style="bold"),
-                record.version or "—",
+                record.version or "-",
                 self._plugin_state(record),
-                Text(_short(record.origin, 34) or "—", style="dim"),
-                Text(_short(record.summary or "", 40) or "—", style="dim"),
+                Text(_short(record.origin, 34) or "-", style="dim"),
+                Text(_short(record.summary or "", 40) or "-", style="dim"),
                 key=record.name,
             )
 
     def _plugin_state(self, record: plugin_store.Record) -> Text:
         """The one-word answer to "is this thing working"."""
         if not self.plugins_enabled:
-            return Text("— off (--no-plugins)", style="dim")
+            return Text("- off (--no-plugins)", style="dim")
         if not record.enabled:
             return Text("disabled", style="dim")
         failure = self.plugins.failure_for(record.name)
@@ -1444,7 +1444,7 @@ class PbApp(App[None]):
         if record.summary:
             text.append(record.summary + "\n\n")
         text.append("where from\n", style="bold")
-        text.append(f"  {record.origin or '—'}\n")
+        text.append(f"  {record.origin or '-'}\n")
         if record.ref:
             text.append(f"  ref {record.ref}\n", style="cyan")
         if record.commit:
@@ -1524,7 +1524,7 @@ class PbApp(App[None]):
             return
         self.call_from_thread(
             self._plugin_done,
-            f"installed {done.record.name} {done.record.version} — restart pb to load it",
+            f"installed {done.record.name} {done.record.version} - restart pb to load it",
         )
 
     def action_plugin_update(self) -> None:
@@ -1533,7 +1533,7 @@ class PbApp(App[None]):
             return
         if record.linked:
             self.notify(
-                f"{record.name} is your working copy at {record.path} — pb leaves it alone",
+                f"{record.name} is your working copy at {record.path} - pb leaves it alone",
                 severity="warning",
             )
             return
@@ -1549,7 +1549,7 @@ class PbApp(App[None]):
             return
         message = (
             f"{name}: {done.previous_commit[:7]} → {done.record.short_commit}"
-            " — restart pb to load it"
+            " - restart pb to load it"
             if done.changed
             else f"{name} is already at {done.record.short_commit}"
         )
@@ -1589,7 +1589,7 @@ class PbApp(App[None]):
             except plugin_cli.EXPECTED as exc:
                 self._plugin_failed("remove", exc)
                 return
-            self._plugin_done(f"{record.name} removed — it stays loaded until pb restarts")
+            self._plugin_done(f"{record.name} removed - it stays loaded until pb restarts")
 
         self.push_screen(Confirm(f"Remove {record.name}?", body, "Remove"), go)
 
@@ -1606,7 +1606,7 @@ class PbApp(App[None]):
         body = "\n".join(f"{k:<{width}}  {v}" for k, v in fields.items())
         failure = self.plugins.failure_for(record.name)
         if failure is not None:
-            body += f"\n\nfailed to load — {failure.stage}\n{failure.detail or failure.message}"
+            body += f"\n\nfailed to load - {failure.stage}\n{failure.detail or failure.message}"
         self.push_screen(Viewer(f"{record.name}", body))
 
     def _plugin_done(self, message: str) -> None:
@@ -1624,14 +1624,14 @@ class PbApp(App[None]):
         live = next((s for s in self.screen_stack if isinstance(s, RunScreen) and s.running), None)
         if live is not None:
             self.notify(
-                "a run is still going — ctrl+c cancels it, then q quits",
+                "a run is still going - ctrl+c cancels it, then q quits",
                 severity="warning",
             )
             return
         self.exit()
 
     def action_help(self) -> None:
-        self.push_screen(Viewer("pb — keys", HELP))
+        self.push_screen(Viewer("pb - keys", HELP))
 
     def action_reload(self) -> None:
         self.notify("reloading…")
@@ -1654,7 +1654,7 @@ PLAYBOOKS
   t  tags       l  limit                 d  --diff toggle
   v  verbosity  e  extra args            x  clear all options
   The pane on the right shows the exact command your options produce.
-  Applying resolves the real host list first and shows it before you commit.
+  Applying resolves the target hosts and shows them before you commit.
 
 INVENTORY
   p  ping       f  gather facts          i  resolved vars
@@ -1674,7 +1674,7 @@ VAULT
   n  new group vault   k  rekey every vault
 
 HISTORY
-  Every run pb makes is recorded under .pb/runs — command, tags, exit code,
+  Every run pb makes is recorded under .pb/runs - command, tags, exit code,
   recap, the commit it ran against, and the full output.
   o  open the saved output                a  run the same command again
 
@@ -1694,7 +1694,7 @@ UPDATES
   you the changelog and the exact install command before anything happens.
   Skip a version and it is never offered again; esc asks again tomorrow.
   Start pb with --no-update-check, or set PB_NO_UPDATE_CHECK=1, to turn the
-  check off — ctrl+u still checks when you ask for it.
+  check off - ctrl+u still checks when you ask for it.
 
 WHILE A RUN IS ON SCREEN
   ctrl+c  cancel      w  toggle wrap     s  save the log
@@ -1714,7 +1714,7 @@ def _notes(probe: hoststatus.HostStatus) -> Text:
     updates = probe.get("updates", "0")
     if updates.isdigit() and int(updates) > 0:
         notes.append(f"{updates} updates ", style="cyan")
-    return notes if notes.plain else Text("—", style="dim")
+    return notes if notes.plain else Text("-", style="dim")
 
 
 def _short_uptime(text: str) -> str:
@@ -1781,7 +1781,7 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(
         prog="pb",
-        description="A terminal console for an Ansible repository.",
+        description="Run control for Ansible repositories.",
         epilog="pb plugin --help  manages plugins (install, update, link, new).",
     )
     parser.add_argument(
@@ -1821,7 +1821,7 @@ def main() -> int:
     if not (root / "ansible.cfg").is_file():
         print(
             f"pb: no ansible.cfg in {start.resolve()} or any parent directory.\n"
-            "pb runs inside an Ansible repository — cd into one, or give it a path.",
+            "pb runs inside an Ansible repository - cd into one, or give it a path.",
             file=sys.stderr,
         )
         return 2

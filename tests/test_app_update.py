@@ -216,7 +216,7 @@ def test_a_clone_is_told_to_git_pull_rather_than_offered_an_install(
 
 def test_a_row_event_that_outlives_its_pane_is_ignored(repo_root: Path) -> None:
     """Filling a table queues one `RowHighlighted` per row, and they are
-    dispatched afterwards — including while the app is being torn down, when
+    dispatched afterwards - including while the app is being torn down, when
     the detail pane they would draw into has gone. That is not a crash."""
 
     async def scenario() -> None:

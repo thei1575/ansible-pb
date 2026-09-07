@@ -1,7 +1,7 @@
 # Troubleshooting
 
-Start at [Doctor](../guide/doctor.md) — <kbd>7</kbd>. Most of what follows it
-already tells you.
+Open [Doctor](../guide/doctor.md) with <kbd>7</kbd> before working through this
+reference. Its check details identify most configuration and dependency errors.
 
 ## pb will not start
 
@@ -34,7 +34,7 @@ from**. The usual causes, in order of likelihood:
 
 1. `$ANSIBLE_INVENTORY` is exported in this shell. It beats `ansible.cfg`.
 2. `ansible.cfg` has an `[defaults] inventory` you had forgotten.
-3. Nothing names one, and pb picked by looking around — the line says
+3. Nothing names one, and pb picked by looking around - the line says
    `found in the repo`.
 
 Override for a session with `pb -i <path>`. The full rules are in
@@ -48,7 +48,7 @@ Both should read the same thing. If they do not, compare environments:
 env | grep ^ANSIBLE
 ```
 
-`ANSIBLE_CONFIG` pointing somewhere unexpected is the other common cause — pb
+`ANSIBLE_CONFIG` pointing somewhere unexpected is the other common cause - pb
 reads `[defaults] inventory` from the repo's own `ansible.cfg`, while Ansible
 honours `ANSIBLE_CONFIG` first. pb still passes no `-i` in that case, so
 Ansible's answer is the one that runs; the disagreement is only in what pb
@@ -57,9 +57,9 @@ Ansible's answer is the one that runs; the disagreement is only in what pb
 ### A multi-source inventory only shows one source
 
 By design. pb shows one inventory and derives `group_vars` from it, so it works
-off the first source of a comma-separated list — and passes no `-i`, which is
+off the first source of a comma-separated list - and passes no `-i`, which is
 what keeps Ansible seeing the whole list. See
-[why pb sometimes passes `-i`](inventory-resolution.md#why-pb-sometimes-passes-i-and-sometimes-does-not).
+[when pb passes `-i`](inventory-resolution.md#when-pb-passes-i).
 
 ## Empty tabs
 
@@ -85,7 +85,7 @@ under a different directory name, or with a `.yaml` extension are not listed.
 
 pb lists `<group_vars>/*/vault.yml`. Two things break that:
 
-- `group_vars` is not beside the inventory pb settled on — Doctor warns
+- `group_vars` is not beside the inventory pb settled on - Doctor warns
   `none beside the inventory`.
 - Your groups are single files (`group_vars/webservers.yml`) rather than
   directories, so there is nowhere for a separate `vault.yml`. Ansible reads
@@ -95,9 +95,9 @@ pb lists `<group_vars>/*/vault.yml`. Two things break that:
 
 pb builds that index from each playbook's `roles:` key. A role pulled in with
 `include_role` or `import_role` from inside a task file, or via another role's
-`meta/main.yml` dependencies, is not credited — following those means parsing
+`meta/main.yml` dependencies, is not credited - following those means parsing
 task semantics, which
-[pb does not do](../project/architecture.md#pb-never-reimplements-ansible).
+[outside pb's execution boundary](../project/architecture.md#ansible-owns-execution-semantics).
 
 ## Vaults
 
@@ -107,7 +107,7 @@ Almost always `.vault_pass`: missing, wrong, or stale after a rekey. Doctor
 checks its existence and mode; the `vault <group>` checks run a real
 `ansible-vault view` and show Ansible's error.
 
-If you have just rekeyed, update `.vault_pass` — until you do, the inventory
+If you have just rekeyed, update `.vault_pass` - until you do, the inventory
 load fails too, which takes most of pb with it.
 
 ### `vault password … should be 0o600`
@@ -131,20 +131,20 @@ ansible-vault encrypt inventories/production/group_vars/<group>/vault.yml
 
 This was a real bug and is fixed. The parent used to close the pty slave as soon
 as the child was spawned, so the master reported EOF the moment the child
-exited — and on BSD that EOF discards whatever is still in the pty buffer, which
+exited - and on BSD that EOF discards whatever is still in the pty buffer, which
 is where the last lines of a run live. A short command could lose everything it
 printed.
 
-If you see it on a current pb, it is a new bug worth
-[an issue](https://github.com/thei1575/ansible-pb/issues) — with your OS and
-what `ansible --version` prints.
+If you see it on a current pb, open
+[an issue](https://github.com/thei1575/ansible-pb/issues) with your OS and the
+output of `ansible --version`.
 
 ### A run hangs with no output
 
 Something in the run is prompting, and nothing in a pb run is interactive: a
 prompt deadlocks the pty reader. Causes:
 
-- a playbook with `vars_prompt` that pb did not detect — pb checks for the key
+- a playbook with `vars_prompt` that pb did not detect - pb checks for the key
   and drops such playbooks to a real terminal, but only for **apply**, not for a
   dry run
 - an SSH host key prompt, or a passphrase prompt for a key not in your agent
@@ -155,7 +155,7 @@ Then run it outside pb, or add the key to your agent.
 
 ### pb will not let me quit
 
-<kbd>q</kbd> is refused while a run that changes something is still going —
+<kbd>q</kbd> is refused while a run that changes something is still going -
 Ansible is in its own process group, so quitting would leave it applying changes
 with nothing left to show the output. Cancel with <kbd>ctrl</kbd>+<kbd>c</kbd>
 or let it finish.
@@ -171,7 +171,7 @@ your `ansible.cfg` sets `nocolor = 1` or your environment exports
 
 ### Every host is unreachable
 
-The probe uses `BatchMode=yes`, so it never prompts — a key that is not in your
+The probe uses `BatchMode=yes`, so it never prompts - a key that is not in your
 agent looks exactly like a refused connection. Try one host by hand:
 
 ```bash
@@ -181,7 +181,7 @@ ssh -o BatchMode=yes <ansible_user>@<address> true
 pb picks `<ansible_user>` from the host's `ansible_user` variable, `root`
 otherwise, and `<address>` from `ansible_host`, the inventory name otherwise.
 
-### Columns are `—` on some hosts
+### Columns are `-` on some hosts
 
 The probe emits `key=value` lines and omits anything unavailable, which keeps it
 portable. A host without `systemd` has no failed-units or services count; a host
@@ -194,7 +194,7 @@ The probe reads `/etc/letsencrypt/live/<fqdn>/cert.pem`, and it learns the
 `<fqdn>`s from the host's own variables: every one whose name ends in `_fqdn`
 with a non-empty string value. No such variable, no certificate row.
 
-### `local connection — nothing to probe`
+### `local connection - nothing to probe`
 
 The host is `localhost`, or has `ansible_connection: local`. There is no SSH
 round trip to make.
@@ -204,7 +204,7 @@ round trip to make.
 ### A plugin is not there after I installed it
 
 Installing, updating, enabling and removing all take effect the next time pb
-starts — plugin code is imported once, at start-up. The
+starts - plugin code is imported once, at start-up. The
 [Plugins](../guide/plugins.md) tab says `• pending restart` for exactly this
 reason. Quit and start pb again.
 
@@ -220,14 +220,14 @@ pb plugin doctor
 Three failures account for most of it: a `pb-plugin.toml` pb cannot use, a
 module that raises on import, and a module that defines no `Plugin` subclass. A
 plugin declaring an `api` number this pb does not speak is refused outright
-rather than imported and failed halfway — `pb plugin doctor` prints the version
+rather than imported and failed halfway - `pb plugin doctor` prints the version
 this pb speaks.
 
 ### Two plugins, and one of them never loads
 
 They declare the same `module`. Plugins share `sys.path`, so one would shadow
 the other; pb reports it instead of picking. One of them has to rename its
-module — see [the manifest](writing-plugins.md#the-manifest).
+module - see [the manifest](writing-plugins.md#the-manifest).
 
 ### pb is misbehaving and a plugin might be why
 
@@ -255,7 +255,7 @@ gives you the built-in behaviour to compare against.
 ### `pb plugin update` threw away my edits
 
 pb owns the directories under its config directory and resets them on update.
-To work on a plugin, keep your own checkout and point pb at it — pb reads it in
+To work on a plugin, keep your own checkout and point pb at it - pb reads it in
 place and never touches it with git:
 
 ```bash
@@ -276,7 +276,7 @@ Open an issue with the template. Include:
 - your Python version and OS
 - what `ansible --version` prints
 - if a command pb built was wrong, **the command line from the right-hand
-  pane** — that is usually the whole bug
+  pane** - that is usually the whole bug
 
 Please report security issues privately instead. See
 [Security](../project/security.md).

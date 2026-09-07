@@ -1,7 +1,6 @@
 # Repository layout
 
-pb reads a conventional Ansible repository. It does not impose a new one, and
-it does not create anything except `.pb/`.
+pb reads an existing Ansible repository and stores its own state under `.pb/`.
 
 ```
 ansible.cfg                          # marks the repo root
@@ -10,17 +9,17 @@ roles/<role>/{tasks,defaults}/
 <inventory>                          # whatever ansible.cfg says, or -i
 <inventory>/group_vars/<group>/{main,vault}.yml
 .vault_pass                          # gitignored, 0600
-.pb/runs/                            # pb's own run records — gitignore this
+.pb/runs/                            # pb's own run records - gitignore this
 ```
 
-## The two fixed names
+## Fixed paths
 
 `playbooks/` and `roles/` are the only paths pb assumes.
 
-- **`playbooks/`** — every `*.yml` here becomes a row in the
+- **`playbooks/`** - every `*.yml` here becomes a row in the
   [Playbooks](../guide/playbooks.md) tab. The description column is the file's
   own header comment where it has one, and the first play's `name` otherwise.
-- **`roles/`** — every directory here becomes a row in the
+- **`roles/`** - every directory here becomes a row in the
   [Roles](../guide/roles.md) tab, with its `tasks/` files, its
   `defaults/main.yml`, and the playbooks that reference it.
 
@@ -40,7 +39,7 @@ first, and only then by looking around:
 | `$ANSIBLE_INVENTORY` | `from $ANSIBLE_INVENTORY` | no (1) |
 | `[defaults] inventory` in `ansible.cfg` | `from ansible.cfg` | no (1) |
 | Found in the repo | `found in the repo` | yes |
-| Nothing named one | `pb's default — nothing named one` | yes |
+| Nothing named one | `pb's default - nothing named one` | yes |
 
 </div>
 
@@ -67,7 +66,7 @@ inventories/
     group_vars/
 ```
 
-pb picks the *environment directory*, not its parent — that is where
+pb picks the *environment directory*, not its parent - that is where
 `group_vars` lives, and merging every environment into one view is never what
 you meant. Among several it prefers `production`, `prod`, `main` or `default`,
 in that order, and otherwise takes the first alphabetically. Switch with:
@@ -83,7 +82,7 @@ layout is read as one inventory.
 ## `group_vars` and the vaults
 
 `group_vars` is always taken from beside whichever inventory won, exactly as
-Ansible resolves it — `<inventory>/group_vars/` for a directory inventory, or
+Ansible resolves it - `<inventory>/group_vars/` for a directory inventory, or
 `<inventory's parent>/group_vars/` for a file.
 
 The [Vault](../guide/vault.md) tab lists one entry per group directory that has
@@ -102,7 +101,7 @@ inventories/production/group_vars/
 ## `.vault_pass`
 
 pb reads the vault password from the repository's `.vault_pass`, the same way
-Ansible does through your `ansible.cfg`. Keep it `0600` and gitignored — Doctor
+Ansible does through your `ansible.cfg`. Keep it `0600` and gitignored - Doctor
 fails the check if the mode is anything else, and fails outright if the file is
 missing, because nothing that touches a vault will run without it.
 
@@ -111,7 +110,7 @@ missing, because nothing that touches a vault will run without it.
 If your repo vendors collections under `collections/ansible_collections/`,
 Doctor lists what is installed. It does not install them for you.
 
-## What pb writes
+## Local pb state
 
 Exactly one thing: `.pb/` in the repository root.
 

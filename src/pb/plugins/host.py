@@ -3,7 +3,7 @@
 This is the only module that knows both sides: it takes what a plugin
 contributes and puts it into pb's widget tree, and it calls the hooks with
 every exception caught. The rule is that a broken plugin costs the user that
-plugin and nothing else — a hook that raises is reported, and the plugin is
+plugin and nothing else - a hook that raises is reported, and the plugin is
 switched off for the rest of the session so it cannot raise on every keystroke.
 """
 
@@ -96,13 +96,13 @@ class PluginHost:
         with suppress(Exception):
             self.app.notify(
                 f"plugin {plugin.name} failed in {doing} and was switched off "
-                f"for this session — {message}",
+                f"for this session - {message}",
                 severity="error",
                 timeout=12,
             )
 
     def _remove_panes(self, plugin: Plugin) -> None:
-        """Take a dead plugin's tabs away — an empty tab explains nothing."""
+        """Take a dead plugin's tabs away - an empty tab explains nothing."""
         for pane_id in self.panes.pop(plugin.name, []):
             self.tab_focus.pop(pane_id, None)
             self.app.tab_tables.pop(pane_id, None)
@@ -116,7 +116,7 @@ class PluginHost:
 
         Tabs first, and awaited: a plugin's `keys()` binds to widgets its own
         tab owns and `activate()` queries them, so the panes have to be
-        mounted — `add_pane` only promises to mount them.
+        mounted - `add_pane` only promises to mount them.
         """
         for plugin in list(self.active):
             with self._guard(plugin, "tabs()"):

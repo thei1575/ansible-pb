@@ -1,7 +1,7 @@
 """The update check: versions, changelogs, skip state and install commands.
 
-Nothing here goes near a network. The two functions that would — `_get` and
-`latest_release` — are replaced; everything else is pure and gets a real test.
+Nothing here goes near a network. The two functions that would - `_get` and
+`latest_release` - are replaced; everything else is pure and gets a real test.
 """
 
 from __future__ import annotations
@@ -182,7 +182,7 @@ def test_a_body_that_is_not_json_is_not_a_release(monkeypatch: pytest.MonkeyPatc
 
 
 def test_the_state_file_lives_in_pbs_config_directory(tmp_path: Path) -> None:
-    """The same directory the plugin store uses — one place, one rule."""
+    """The same directory the plugin store uses - one place, one rule."""
     assert update.state_path() == tmp_path / "pb-home" / "update.json"
 
 

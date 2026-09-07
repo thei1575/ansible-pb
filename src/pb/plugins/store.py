@@ -21,7 +21,7 @@ STATE_NAME = "plugins.json"
 
 
 class StoreError(Exception):
-    """The store cannot do what was asked — usually a name that is not installed."""
+    """The store cannot do what was asked - usually a name that is not installed."""
 
 
 # Re-exported so a plugin need not know which module the rule lives in.
@@ -137,7 +137,7 @@ class Store:
         return self.plugins_dir / name
 
     def root_for(self, record: Record) -> Path:
-        """The directory to read a plugin from — the link target, if linked."""
+        """The directory to read a plugin from - the link target, if linked."""
         return Path(record.path).expanduser() if record.linked else self.dir_for(record.name)
 
     def data_dir_for(self, name: str) -> Path:

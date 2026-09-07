@@ -1,3 +1,3 @@
-"""pb — a terminal console for an Ansible repository."""
+"""pb: run control for Ansible repositories."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

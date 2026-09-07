@@ -1,4 +1,4 @@
-"""`pb plugin …` — installing and developing plugins from the command line.
+"""`pb plugin …` - installing and developing plugins from the command line.
 
 Everything here is deliberately outside the TUI: installing a plugin fetches
 and then runs third-party code in pb's process, so it should be something you
@@ -133,9 +133,9 @@ def _list(store: Store, args: argparse.Namespace) -> int:
     rows = [
         (
             record.name,
-            record.version or "—",
+            record.version or "-",
             _state(record),
-            str(store.root_for(record)) if args.paths else record.origin or "—",
+            str(store.root_for(record)) if args.paths else record.origin or "-",
         )
         for record in records
     ]
@@ -286,7 +286,7 @@ def _doctor(store: Store, args: argparse.Namespace) -> int:
 
 
 def _hooks(plugin: object) -> list[str]:
-    """Which hooks this plugin actually overrides — the useful half of `info`."""
+    """Which hooks this plugin actually overrides - the useful half of `info`."""
     from .api import Plugin
 
     return [
@@ -309,7 +309,7 @@ def _confirm(assume_yes: bool, question: str) -> bool:
         return True
     if not sys.stdin.isatty():
         print(
-            f"{question} — refusing to install without a terminal to ask in. "
+            f"{question} - refusing to install without a terminal to ask in. "
             "Pass --yes if you meant it.",
             file=sys.stderr,
         )

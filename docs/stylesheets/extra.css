@@ -1,126 +1,293 @@
-/* pb's palette: a deep teal that survives both schemes, plus a few pieces of
-   polish the built-in theme has no opinion about. */
+/* pb uses the visual language of an operations panel: slate housings, paper
+   labels, amber controls, and compact instrument typography. */
 
 :root,
 [data-md-color-scheme="default"] {
-  --md-primary-fg-color: #14625f;
-  --md-primary-fg-color--light: #1d7d79;
-  --md-primary-fg-color--dark: #0d4442;
+  --pb-ink: #17212b;
+  --pb-panel: #273544;
+  --pb-panel-deep: #111820;
+  --pb-paper: #f3f5f4;
+  --pb-rule: #c9d0d2;
+  --pb-amber: #c77b16;
+  --pb-amber-bright: #e5a33e;
+  --pb-green: #3f7669;
+
+  --md-primary-fg-color: var(--pb-panel);
+  --md-primary-fg-color--light: #3b4c5d;
+  --md-primary-fg-color--dark: var(--pb-panel-deep);
   --md-primary-bg-color: #ffffff;
   --md-primary-bg-color--light: #ffffffb3;
-
-  --md-accent-fg-color: #0f8f88;
-  --md-accent-fg-color--transparent: #0f8f881a;
-  --md-accent-bg-color: #ffffff;
-  --md-accent-bg-color--light: #ffffffb3;
-
-  --md-typeset-a-color: #106b67;
+  --md-accent-fg-color: #a75e0b;
+  --md-accent-fg-color--transparent: #c77b1618;
+  --md-typeset-a-color: #8e510d;
+  --md-default-bg-color: var(--pb-paper);
 }
 
 [data-md-color-scheme="slate"] {
-  --md-hue: 205;
+  --md-hue: 210;
+  --pb-ink: #e7ecec;
+  --pb-panel: #1d2833;
+  --pb-panel-deep: #0d1319;
+  --pb-paper: #141c24;
+  --pb-rule: #394653;
+  --pb-amber: #dda044;
+  --pb-amber-bright: #f0ba64;
+  --pb-green: #72a99a;
 
-  --md-primary-fg-color: #0d4442;
-  --md-primary-fg-color--light: #14625f;
-  --md-primary-fg-color--dark: #082f2e;
-
-  --md-accent-fg-color: #5fd3ca;
-  --md-accent-fg-color--transparent: #5fd3ca1a;
-
-  --md-typeset-a-color: #46c3ba;
+  --md-primary-fg-color: var(--pb-panel-deep);
+  --md-primary-fg-color--light: var(--pb-panel);
+  --md-primary-fg-color--dark: #080d12;
+  --md-accent-fg-color: var(--pb-amber-bright);
+  --md-accent-fg-color--transparent: #dda0441c;
+  --md-typeset-a-color: var(--pb-amber-bright);
+  --md-default-bg-color: var(--pb-paper);
 }
 
-/* --- the home page hero ------------------------------------------------- */
+body {
+  letter-spacing: -0.006em;
+}
+
+.md-header {
+  border-bottom: 3px solid var(--pb-amber);
+  box-shadow: none;
+}
+
+.md-header__title,
+.md-tabs__link,
+.md-nav__title,
+.md-nav__link,
+.md-footer-meta {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.md-header__title {
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  color: var(--pb-ink);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.md-typeset h2 {
+  border-top: 1px solid var(--pb-rule);
+  padding-top: 1.1rem;
+}
+
+.md-typeset .md-button {
+  border-radius: 2px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.md-typeset .md-button--primary {
+  background: var(--pb-amber);
+  border-color: var(--pb-amber);
+  color: #111820;
+}
+
+.md-typeset table:not([class]) {
+  border: 1px solid var(--pb-rule);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.md-typeset table:not([class]) th {
+  background: var(--pb-panel);
+  color: #f7f8f8;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Home page thesis */
 
 .pb-hero {
-  margin: 0 0 2.4rem;
-  text-align: center;
+  max-width: 46rem;
+  margin: 1.6rem 0 2.8rem;
+  text-align: left;
+}
+
+.pb-kicker {
+  display: inline-block;
+  margin-bottom: 0.8rem;
+  border-left: 4px solid var(--pb-amber);
+  padding: 0.18rem 0 0.18rem 0.6rem;
+  color: var(--pb-green);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.13em;
 }
 
 .pb-hero h1 {
-  margin: 0 0 0.4rem;
-  font-size: 2.4rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--md-default-fg-color);
+  max-width: 42rem;
+  margin: 0 0 0.8rem;
+  font-size: clamp(2rem, 6vw, 3.6rem);
+  font-weight: 600;
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+  color: var(--pb-ink);
 }
 
 .pb-hero p {
-  max-width: 34rem;
-  margin: 0 auto 1.2rem;
-  font-size: 0.9rem;
+  max-width: 39rem;
+  margin: 0 0 1.4rem;
   color: var(--md-default-fg-color--light);
+  font-size: 1rem;
+  line-height: 1.55;
 }
 
 .pb-hero .md-button {
-  margin: 0.2rem;
+  margin: 0 0.4rem 0.4rem 0;
 }
 
-/* --- a terminal frame for the "what it looks like" block ---------------- */
+/* The console is presented as equipment, with a session strip above it. */
+
+.pb-console-label {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.8rem;
+  align-items: center;
+  margin-top: 1.2rem;
+  border: 1px solid var(--pb-rule);
+  border-bottom: 0;
+  padding: 0.45rem 0.7rem;
+  background: color-mix(in srgb, var(--pb-rule) 34%, transparent);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+}
+
+.pb-console-label code {
+  overflow: hidden;
+  background: transparent;
+  color: var(--md-default-fg-color--light);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pb-console-label span:last-child {
+  color: var(--pb-green);
+  font-weight: 600;
+}
 
 .pb-term {
-  margin: 1.2rem 0;
-  border: 1px solid var(--md-default-fg-color--lightest);
-  border-radius: 0.4rem;
+  margin: 0 0 2.8rem;
+  border: 1px solid var(--pb-rule);
+  border-top: 3px solid var(--pb-amber);
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: var(--md-shadow-z1);
+  background: var(--pb-panel-deep);
+  box-shadow: 8px 8px 0 color-mix(in srgb, var(--pb-rule) 45%, transparent);
 }
 
 .pb-term > .pb-term-bar {
-  display: flex;
-  gap: 0.35rem;
-  align-items: center;
-  padding: 0.45rem 0.7rem;
-  background: var(--md-default-fg-color--lightest);
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 0.8rem;
+  align-items: baseline;
+  padding: 0.52rem 0.75rem;
+  background: var(--pb-panel);
+  color: #f7f8f8;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.pb-term > .pb-term-bar strong {
+  color: var(--pb-amber-bright);
+  font-size: 0.78rem;
+}
+
+.pb-term > .pb-term-bar em,
+.pb-term > .pb-term-bar span {
+  font-size: 0.58rem;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .pb-term > .pb-term-bar span {
-  width: 0.6rem;
-  height: 0.6rem;
-  border-radius: 50%;
-  background: var(--md-default-fg-color--light);
-  opacity: 0.5;
+  color: #aeb9c2;
+  text-align: right;
 }
 
-.pb-term > .pb-term-bar em {
-  margin-left: 0.4rem;
-  font-size: 0.62rem;
-  font-style: normal;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--md-default-fg-color--light);
-}
-
-.pb-term .highlight,
-.pb-term pre {
+.md-typeset .pb-term .highlight,
+.md-typeset .pb-term .highlight pre,
+.md-typeset .pb-term .highlight pre > code,
+.md-typeset .pb-term pre {
   margin: 0;
+  background: var(--pb-panel-deep) !important;
+  color: #dce5e8 !important;
 }
 
-/* The mock is box-drawing art, so every glyph on a line has to come from the
-   same font: a webfont whose Latin subset lacks U+2500.. falls back for the
-   borders only, and the ~0.03px advance difference walks the frame out of
-   alignment across 78 columns. A complete local monospace draws all of it. */
 .pb-term pre,
 .pb-term code {
+  color: #dce5e8;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace;
   font-variant-ligatures: none;
 }
 
-/* A line box taller than the glyph leaves a gap between the box-drawing
-   verticals on consecutive lines, so the frame reads as dashed. Tighten it
-   until they meet. */
-.pb-term pre > code {
-  line-height: 1.15;
+.md-typeset .pb-term .highlight code * {
+  color: inherit !important;
 }
 
 .pb-term pre > code {
   border-radius: 0;
+  line-height: 1.15;
 }
 
-/* --- key-map and option tables ------------------------------------------ */
+/* The five entries describe a real ordered operation, so the rail carries
+   sequence rather than serving as decoration. */
 
-/* The key map is dense and read by scanning: monospace the first column and
-   let it breathe rather than wrap. */
+.pb-runbook {
+  counter-reset: run-stage;
+  margin: 1.2rem 0 2.6rem;
+}
+
+.pb-runbook > ol {
+  margin-left: 0;
+  list-style: none;
+}
+
+.pb-runbook > ol > li {
+  position: relative;
+  margin: 0;
+  border-left: 1px solid var(--pb-rule);
+  padding: 0.15rem 0 1.25rem 3.2rem;
+  counter-increment: run-stage;
+}
+
+.pb-runbook > ol > li::before {
+  position: absolute;
+  top: 0;
+  left: -1px;
+  width: 2.25rem;
+  border-left: 4px solid var(--pb-amber);
+  padding: 0.2rem 0.35rem;
+  background: var(--pb-panel);
+  color: #f7f8f8;
+  content: "0" counter(run-stage);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.64rem;
+  font-weight: 600;
+}
+
+.pb-runbook > ol > li > p {
+  margin: 0.15rem 0;
+}
+
+/* Reference tables */
+
 .pb-keys table th:first-child,
 .pb-keys table td:first-child {
   font-family: var(--md-code-font-family);
@@ -132,23 +299,33 @@
   white-space: nowrap;
 }
 
-/* --- grid cards --------------------------------------------------------- */
+@media screen and (max-width: 44.984375em) {
+  .pb-hero {
+    margin-top: 0.6rem;
+  }
 
-.md-typeset .grid.cards > ul > li {
-  border-radius: 0.4rem;
+  .pb-hero h1 {
+    font-size: 2.35rem;
+  }
+
+  .pb-console-label {
+    grid-template-columns: auto 1fr;
+  }
+
+  .pb-console-label span:last-child {
+    display: none;
+  }
+
+  .pb-term {
+    box-shadow: 4px 4px 0 color-mix(in srgb, var(--pb-rule) 45%, transparent);
+  }
 }
 
-.md-typeset .grid.cards > ul > li > hr {
-  margin: 0.6rem 0;
-}
-
-/* Tighten the icon + heading pairing inside a card. */
-.md-typeset .grid.cards > ul > li > p:first-child > .twemoji:first-child,
-.md-typeset .grid.cards > ul > li > p:first-child > .lg {
-  color: var(--md-primary-fg-color);
-}
-
-[data-md-color-scheme="slate"] .md-typeset .grid.cards > ul > li > p:first-child > .twemoji:first-child,
-[data-md-color-scheme="slate"] .md-typeset .grid.cards > ul > li > p:first-child > .lg {
-  color: var(--md-accent-fg-color);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

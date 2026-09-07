@@ -1,4 +1,4 @@
-"""Install, update, link and remove — the operations behind `pb plugin`.
+"""Install, update, link and remove - the operations behind `pb plugin`.
 
 Kept apart from the CLI so the Plugins tab can run exactly the same code, and
 apart from the loader so that installing never imports plugin code: nothing a
@@ -42,7 +42,7 @@ def install(
     """Clone a plugin and record it.
 
     The clone lands in a scratch directory first, because the plugin's name
-    comes out of its own manifest — pb will not guess it from a repository
+    comes out of its own manifest - pb will not guess it from a repository
     name and then be wrong about it for the life of the install.
     """
     resolved = source.resolve(spec, ref)
@@ -62,7 +62,7 @@ def install(
         target = store.dir_for(plugin_name)
         if (existing or target.exists()) and not force:
             raise StoreError(
-                f"{plugin_name} is already installed — "
+                f"{plugin_name} is already installed - "
                 "`pb plugin update` moves it on, or pass --force to replace it"
             )
 
@@ -101,12 +101,12 @@ def update(store: Store, name: str) -> Installed:
     record = store.require(name)
     if record.linked:
         raise StoreError(
-            f"{name} is linked to {record.path} — it is your working copy, so pb "
+            f"{name} is linked to {record.path} - it is your working copy, so pb "
             "does not touch it with git"
         )
     root = store.root_for(record)
     if not root.is_dir():
-        raise StoreError(f"{name} is recorded but {root} is gone — reinstall it")
+        raise StoreError(f"{name} is recorded but {root} is gone - reinstall it")
 
     before, after = source.update(root, record.ref)
     manifest = load_manifest(root)
@@ -137,7 +137,7 @@ def update_all(store: Store) -> tuple[list[Installed], list[tuple[str, Exception
 
 
 def link(store: Store, path: str | Path, name: str = "") -> Installed:
-    """Register a checkout on disk in place — the development loop.
+    """Register a checkout on disk in place - the development loop.
 
     pb reads the directory where it is, so an edit is one restart away from
     being live, and `pb plugin update` refuses to touch it.
@@ -153,7 +153,7 @@ def link(store: Store, path: str | Path, name: str = "") -> Installed:
     existing = store.get(plugin_name)
     if existing and not existing.linked:
         raise StoreError(
-            f"{plugin_name} is already installed from {existing.origin} — "
+            f"{plugin_name} is already installed from {existing.origin} - "
             "remove it first, then link your checkout"
         )
 
@@ -192,15 +192,15 @@ def describe(store: Store, name: str) -> dict[str, str]:
     root = store.root_for(record)
     out = {
         "name": record.name,
-        "version": record.version or "—",
-        "summary": record.summary or "—",
+        "version": record.version or "-",
+        "summary": record.summary or "-",
         "state": "enabled" if record.enabled else "disabled",
         "kind": "linked (your working copy)" if record.linked else "installed from git",
-        "source": record.origin or "—",
-        "ref": record.ref or ("(default branch)" if not record.linked else "—"),
-        "commit": record.commit or "—",
+        "source": record.origin or "-",
+        "ref": record.ref or ("(default branch)" if not record.linked else "-"),
+        "commit": record.commit or "-",
         "path": str(root),
-        "exists": "yes" if root.is_dir() else "NO — the directory is gone",
+        "exists": "yes" if root.is_dir() else "NO - the directory is gone",
     }
     if not record.linked and (root / ".git").exists():
         out["checked out"] = source.describe(root)
@@ -211,5 +211,5 @@ def describe(store: Store, name: str) -> dict[str, str]:
         if manifest.homepage:
             out["homepage"] = manifest.homepage
     except ManifestError as exc:
-        out["manifest"] = f"unreadable — {exc}"
+        out["manifest"] = f"unreadable - {exc}"
     return out

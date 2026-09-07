@@ -1,221 +1,183 @@
 # pb
 
 [![CI](https://github.com/thei1575/ansible-pb/actions/workflows/ci.yml/badge.svg)](https://github.com/thei1575/ansible-pb/actions/workflows/ci.yml)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
-[![Licence: MIT](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
-[![Docs](https://img.shields.io/badge/docs-thei1575.github.io%2Fansible--pb-14625f)](https://thei1575.github.io/ansible-pb/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-334155)](https://www.python.org/downloads/)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-c47f17)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-pb-c47f17)](https://thei1575.github.io/ansible-pb/)
 
-A terminal console for an Ansible repository. Run playbooks, read the resolved
-inventory, probe hosts over SSH, manage per-group vaults, and keep a record of
-everything you applied — without leaving the terminal.
+**Run control for Ansible.**
 
-pb does not reimplement Ansible. It shells out to `ansible-playbook`,
-`ansible-inventory` and `ansible-vault`, and always shows you the exact command
-before it runs.
+pb is the operator interface for an Ansible repository. It brings playbook
+execution, resolved inventory, host status, vault access, repository checks,
+run history, and repository-specific extensions into one terminal application.
+
+Before an apply, pb resolves the target hosts and presents the complete
+`ansible-playbook` command for review. After the run, it stores the command,
+output, result, and Git commit under `.pb/runs/`.
+
+```text
+ Playbooks  Inventory  Status  Roles  Vault  History  Doctor  Plugins
+┌──────────────────────────────────────────┬─────────────────────────────────┐
+│ ● site.yml        Everything, in order   │ COMMAND                         │
+│   webservers.yml  nginx and certificates │ ansible-playbook                │
+│   database.yml    postgres and backups   │     playbooks/webservers.yml    │
+│   bootstrap.yml   A fresh host, once     │     --tags certs --limit web01  │
+│                                          │     --diff                      │
+│                                          │                                 │
+│                                          │ HOSTS                           │
+│                                          │ web01  10.0.4.11                │
+└──────────────────────────────────────────┴─────────────────────────────────┘
+ tags certs  limit web01  diff on  -v 0
+ r Run  c Dry run  s Syntax  t Tags  l Limit  d Diff  ? Help  q Quit
+```
+
+## Operating model
+
+| Stage | pb provides |
+|---|---|
+| Inspect | Playbooks, roles, resolved host variables, group membership, and repository health |
+| Scope | Tag and host selectors populated from Ansible's output |
+| Review | The complete command, target hosts, addresses, and uncommitted-change count |
+| Execute | Apply, check mode, syntax check, ad-hoc ping, facts, SSH, and vault commands |
+| Record | Full output, exit code, recap, options, timestamp, and Git commit for every run |
+| Extend | Plugin tabs, actions, run hooks, Doctor checks, detail sections, and status data |
+
+`pb` invokes the Ansible installation available on `PATH`. Inventory, tag,
+host, and vault behaviour comes from the same Ansible commands, configuration,
+plugins, and credentials used at the shell.
 
 ## Install
+
+pb requires Python 3.11 or newer, Ansible on `PATH`, and a POSIX terminal on
+macOS or Linux. Current releases are installed from GitHub.
 
 ```bash
 uv tool install git+https://github.com/thei1575/ansible-pb
 ```
 
-or, from a clone:
+`pipx` is also supported:
 
 ```bash
+pipx install git+https://github.com/thei1575/ansible-pb
+```
+
+For development installs:
+
+```bash
+git clone https://github.com/thei1575/ansible-pb
+cd ansible-pb
 uv tool install .
 ```
 
-`pipx install git+https://github.com/thei1575/ansible-pb` works too. Not on
-PyPI yet. pb needs Python 3.11+ and a POSIX terminal (macOS or Linux) — it
-allocates a pty so Ansible keeps its colour.
+## Start a repository session
 
-Ansible itself is deliberately *not* a dependency: pb drives whatever `ansible`
-is already on your `PATH`, so it never interferes with how you install it.
-
-### Staying up to date
-
-pb is installed from git, so it cannot be upgraded by a package manager that
-knows nothing about it. Instead pb asks GitHub once a day whether there is a
-newer release, and if there is, shows you what changed and the exact command
-that would install it:
-
-```
-pb 0.2.0 is out — you are running 0.1.0
-
-  ## [0.2.0] — 2026-09-07
-  ### Added
-  * …the changelog entries between the two versions…
-
-$ uv tool install --force git+https://github.com/thei1575/ansible-pb@v0.2.0
-
-  [ Update now ]  [ Skip this version ]  [ Later ]
-```
-
-Accept and pb runs that command and tells you to restart. Skip and that version
-is never offered again. Escape and it asks again tomorrow. The command is built
-for however pb was installed — `uv tool`, `pipx` or `pip`; a clone you installed
-with `-e` is left to `git pull`.
-
-`ctrl+u` checks whenever you want, ignoring the once-a-day interval and anything
-you skipped.
-
-The check is one unauthenticated GET to `api.github.com`, sending nothing but a
-`pb/<version>` User-Agent. To turn it off:
-
-```bash
-pb --no-update-check          # or: export PB_NO_UPDATE_CHECK=1
-```
-
-## Use
+Run `pb` anywhere under the repository root:
 
 ```bash
 cd ~/my-ansible-repo
 pb
 ```
 
-pb finds the repo by walking up from the working directory to the nearest
-`ansible.cfg`. You can also point it at one:
+You can also pass a repository path or choose an inventory for the session:
 
 ```bash
 pb ~/my-ansible-repo
+pb ~/my-ansible-repo -i inventories/staging
 ```
 
-For the inventory, pb follows Ansible's own precedence — `-i`, then
-`$ANSIBLE_INVENTORY`, then `[defaults] inventory` in `ansible.cfg` — so if
-Ansible already works in your repo, pb reads the same inventory without being
-told. Failing all three it looks around for one, preferring
-`inventories/production`. To pick a different one for this session:
+The nearest `ansible.cfg` marks the repository root. Inventory selection uses
+this order:
 
-```bash
-pb -i inventories/staging
-```
+1. `-i` or `--inventory`
+2. `$ANSIBLE_INVENTORY`
+3. `[defaults] inventory` in `ansible.cfg`
+4. a recognised inventory inside the repository
+5. `inventories/production`
 
-`group_vars` is taken from beside whichever inventory won, the way Ansible
-resolves it. The Doctor tab names the inventory pb settled on and where that
-came from, which is the quickest way to check pb and Ansible agree.
-
-Press `?` inside for the full key map. The full documentation is at
-**[thei1575.github.io/ansible-pb](https://thei1575.github.io/ansible-pb/)** —
-a page per tab, the inventory resolution rules, how to write a plugin, and
-everything pb touches on your machine and your hosts.
-
-| Tab | What it is for |
-|---|---|
-| Playbooks | Run, dry-run or syntax-check anything, with `--tags`/`--limit` pickers |
-| Inventory | Hosts, groups, resolved vars, ping, facts, ssh |
-| Status | Live health per host over ssh: uptime, disk, failed units, containers, cert expiry |
-| Roles | Task files, defaults, and which playbooks use each role |
-| Vault | View, edit, create and rekey the per-group vaults |
-| History | Every run pb has made, with its output kept |
-| Doctor | Preflight over the whole repo |
-| Plugins | Install, update and disable plugins from GitHub |
-
-## What it does that a Makefile cannot
-
-* **It shows the blast radius.** Applying resolves the real host list through
-  `--list-hosts` and names the hosts and addresses before you confirm, rather
-  than showing you a pattern.
-* **It keeps a record.** Every run is written to `.pb/runs/` in the repo —
-  command, tags, exit code, recap, the commit it ran against, and the full
-  output — so "what did I apply, and did it work" has an answer.
-* **It marks uncommitted work.** A yellow `●` on a playbook or role means its
-  files differ from `HEAD`; `ctrl+g` shows the diff.
-
-The pane on the right always shows the exact `ansible-playbook` command your
-current options produce, so nothing runs that you have not read first.
+Open **Doctor** after startup to verify the selected inventory, password file,
+collections, vaults, plugins, playbook syntax, and local toolchain.
 
 ## Plugins
 
-pb has a plugin system, so the things only your infrastructure cares about do
-not have to live in pb. A plugin is a git repository pb clones and imports at
-start-up; it can add a tab, add keys to an existing tab, add Doctor checks,
-react to every run — or replace what one of pb's own keys does.
+Plugins add repository-specific operations to pb. A plugin can provide tabs,
+key actions, command-palette entries, Doctor checks, run hooks, detail-pane
+sections, and status-bar data.
+
+Install and manage plugins from the command line:
 
 ```bash
-pb plugin install owner/pb-terraform     # from GitHub
-pb plugin install owner/pb-thing@v1.2    # pinned to a tag
+pb plugin install owner/pb-terraform
+pb plugin install owner/pb-thing@v1.2
 pb plugin list
 pb plugin disable pb-thing
 ```
 
-Press `8` inside pb for the same thing: install, update, enable and remove,
-with what each one adds and which commit it is on.
+The **Plugins** tab provides install, update, enable, disable, and remove
+actions inside pb. Press <kbd>8</kbd> to open it.
 
-Writing one is a scaffold and a restart:
+Create or link a plugin during development:
 
 ```bash
-pb plugin new pb-mine     # a working plugin, in a git repo
-pb plugin link .          # pb reads your checkout in place
-pb plugin doctor          # does it parse? does it import?
+pb plugin new pb-mine
+pb plugin link .
+pb plugin doctor
 ```
 
-[Writing a plugin](https://thei1575.github.io/ansible-pb/reference/writing-plugins/)
-is the authoring guide: every hook, with an example, and how to publish to
-GitHub.
+Plugins are Python code loaded into the pb process with the current user's
+permissions. They have no sandbox. Hook errors disable the affected plugin for
+the session and appear in Doctor. Use `pb --no-plugins` to start a session with
+plugin loading disabled.
 
-A plugin is Python running inside pb with your permissions — there is no
-sandbox. Installing asks first and shows what it is about to clone; every
-install records the exact commit; nothing a plugin ships runs until pb next
-starts. A plugin that raises is switched off for the session and reported on
-the Doctor tab rather than taking pb down with it. `pb --no-plugins` starts
-without any of them.
+See the [plugin operator guide](https://thei1575.github.io/ansible-pb/guide/plugins/),
+[build your first plugin](https://thei1575.github.io/ansible-pb/plugins/quickstart/),
+or use the [plugin API reference](https://thei1575.github.io/ansible-pb/reference/writing-plugins/)
+and [plugin authoring reference](https://thei1575.github.io/ansible-pb/reference/writing-plugins/).
 
-## Secrets
+## Repository contract
 
-`ansible-inventory` decrypts the vaults to resolve variables, so the Inventory
-tab masks anything whose name looks like a credential (`*_password`, `*_token`,
-`*_key`, `secret`, `salt`, …) until you press `R`. Nothing is ever written back
-except through `ansible-vault` itself.
+pb works with this layout:
 
-Add `.pb/` to the repo's `.gitignore` — run records contain full Ansible output.
-
-## The layout pb expects in *your* repo
-
-pb reads a conventional Ansible layout:
-
-```
-ansible.cfg                          # marks the repo root
+```text
+ansible.cfg
 playbooks/*.yml
 roles/<role>/{tasks,defaults}/
-<inventory>                          # see below
+<inventory>
 <inventory>/group_vars/<group>/{main,vault}.yml
-.vault_pass                          # gitignored, 0600
+.vault_pass
 ```
 
-`playbooks/` and `roles/` are the two fixed names. The inventory is wherever
-your `ansible.cfg` says, or `-i` if you pass it; pb also recognises
-`inventories/<env>/`, `inventory/`, and a `hosts.yml`, `hosts.ini` or
-`inventory.yml` at the repo root.
+`playbooks/` and `roles/` have fixed names. The inventory may come from
+`ansible.cfg`, a command-line path, an environment variable, or one of the
+recognised repository layouts described in the
+[inventory resolution reference](https://thei1575.github.io/ansible-pb/reference/inventory-resolution/).
 
-## This repository
+Add `.pb/` and `.vault_pass` to the managed repository's `.gitignore`:
 
+```gitignore
+.pb/
+.vault_pass
 ```
-src/pb/            the package — one module per concern
-  app.py           the App, the tabs, and every key binding
-  meta.py          read-only introspection of the Ansible repo
-  runner.py        running ansible on a pty and streaming it back
-  run.py           the full-screen run view
-  history.py       the durable record under .pb/runs/
-  hoststatus.py    the read-only SSH health probe
-  update.py        the release check and the command that installs one
-  widgets.py       the modal pickers, prompts and viewers
-  pb.tcss          the stylesheet
-  plugins/         the plugin system
-    api.py         what a plugin imports — the versioned surface
-    manifest.py    pb-plugin.toml, read before any plugin code
-    store.py       what is installed, under ~/.config/pb
-    source.py      resolving owner/repo and cloning it
-    manage.py      install, update, link, remove
-    loader.py      importing plugin code, with the failures contained
-    host.py        binding plugins into the running app
-    cli.py         `pb plugin …`
-    scaffold.py    `pb plugin new`
-  config.py        where pb keeps what is not about the repo
-tests/             pytest, against a fixture Ansible repo in tmp_path
-docs/              the documentation site (Material for MkDocs)
-.github/           CI, issue and pull-request templates, and the
-                   contributing, security and conduct documents
+
+Run records contain complete Ansible output and may contain secrets printed by
+a task. The Inventory view masks credential-shaped variables on screen until
+they are explicitly revealed.
+
+## Update policy
+
+Once a day, pb checks the GitHub releases endpoint for a newer version. The
+update dialog contains the release notes and installation command. Installation
+only begins after confirmation.
+
+Use <kbd>ctrl</kbd>+<kbd>u</kbd> for a manual check. Disable the startup check
+with either form:
+
+```bash
+pb --no-update-check
+export PB_NO_UPDATE_CHECK=1
 ```
+
+The [update reference](https://thei1575.github.io/ansible-pb/reference/updates/)
+documents the request, local state file, and installer detection.
 
 ## Development
 
@@ -224,26 +186,18 @@ uv sync
 uv run pb ~/my-ansible-repo
 uv run ruff check .
 uv run pytest
-uv run --group docs mkdocs serve       # the documentation site, with reload
+uv run --group docs mkdocs serve
 ```
 
-The tests build a throwaway Ansible repo on disk, so they need neither an
-`ansible` binary nor a network. CI runs them on Python 3.11, 3.12 and 3.13, and
-once on macOS to keep the pty handling honest.
+The test suite builds temporary Ansible repositories and local plugin sources.
+Ansible and network access are not required for tests. CI covers Python 3.11,
+3.12, and 3.13, with an additional macOS run for pty handling.
 
-## Contributing
-
-Issues and pull requests are welcome — see [CONTRIBUTING.md](.github/CONTRIBUTING.md)
-for how the code is laid out and what the invariants are (pb never
-reimplements Ansible, nothing runs on the UI thread, secrets stay masked by
-default).
-
-Changes worth knowing about are in [CHANGELOG.md](CHANGELOG.md).
-
-Please report security issues privately rather than in an issue — see
-[SECURITY.md](.github/SECURITY.md), which also explains exactly what pb touches on your
-machine and on your hosts.
+Repository architecture and contribution rules are documented in
+[CONTRIBUTING.md](.github/CONTRIBUTING.md). Security reports belong in GitHub's
+[private vulnerability reporting](https://github.com/thei1575/ansible-pb/security/advisories/new)
+or the address listed in [SECURITY.md](.github/SECURITY.md).
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+[MIT](LICENSE)

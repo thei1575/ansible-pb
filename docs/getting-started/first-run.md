@@ -5,9 +5,8 @@ cd ~/my-ansible-repo
 pb
 ```
 
-That is the whole invocation. pb walks up from the working directory to the
-nearest `ansible.cfg` and treats that directory as the repository root. You can
-also point it at one from anywhere:
+pb walks up from the working directory to the nearest `ansible.cfg` and uses
+that directory as the repository root. A path can be supplied from anywhere:
 
 ```bash
 pb ~/my-ansible-repo
@@ -18,22 +17,20 @@ and exits `2` rather than guessing:
 
 ```
 pb: no ansible.cfg in /home/you/src or any parent directory.
-pb runs inside an Ansible repository — cd into one, or give it a path.
+pb runs inside an Ansible repository - cd into one, or give it a path.
 ```
 
-## Start at Doctor
+## Check the repository
 
-The first thing worth doing in a repo pb has not seen is press <kbd>7</kbd>.
-
-[Doctor](../guide/doctor.md) runs a preflight over the whole repository: it
+Press <kbd>7</kbd> to open [Doctor](../guide/doctor.md), the repository
+preflight. It
 finds `ansible`, names the inventory it settled on and where that came from,
 checks `group_vars` exists beside it, checks `.vault_pass` is present and
 `0600`, decrypts every vault, counts the hosts, and syntax-checks every
 playbook.
 
-The inventory line is the important one. It tells you which inventory pb is
-reading and why — which is the quickest way to confirm pb and Ansible agree
-about your repo.
+The inventory line names the selected path and its source. Compare it with the
+inventory expected for the current repository and environment.
 
 ```
 inventory path   ✔ ok     inventories/production (from ansible.cfg)
@@ -42,7 +39,7 @@ vault password   ✔ ok     .vault_pass 0o600
 inventory        ✔ ok     14 hosts in 6 groups
 ```
 
-If that line is wrong, fix it there and not later — every other tab is derived
+If that line is wrong, fix it there and not later - every other tab is derived
 from it. See [Inventory resolution](../reference/inventory-resolution.md).
 
 ## Choosing an inventory
@@ -53,7 +50,7 @@ needs no configuring:
 1. `-i` / `--inventory` on the command line
 2. `$ANSIBLE_INVENTORY`
 3. `[defaults] inventory` in `ansible.cfg`
-4. failing all three, a look around the repo — preferring `inventories/production`
+4. failing all three, a look around the repo - preferring `inventories/production`
 
 To pick a different one for this session:
 
@@ -85,11 +82,11 @@ tab can actually do. The [key map](../reference/keys.md) has all of them.
 ## Your first dry run
 
 1. <kbd>1</kbd> for Playbooks, then move the cursor to a playbook.
-2. <kbd>t</kbd> to pick tags, <kbd>l</kbd> to pick a limit — both lists come
+2. <kbd>t</kbd> to pick tags, <kbd>l</kbd> to pick a limit - both lists come
    from Ansible, not from parsing YAML.
 3. Read the pane on the right. It shows the exact `ansible-playbook` command
    your current options produce.
-4. <kbd>c</kbd> for a dry run. pb adds `--check --diff` — a `--check` without
+4. <kbd>c</kbd> for a dry run. pb adds `--check --diff` - a `--check` without
    `--diff` tells you almost nothing, so pb implies it rather than making the
    toggle a prerequisite.
 
@@ -101,7 +98,7 @@ closes. When it finishes, the run is already in [History](../guide/history.md).
 
     <kbd>c</kbd> is `--check`, <kbd>s</kbd> is `--syntax-check`, and
     <kbd>enter</kbd> is a dry run. Only <kbd>r</kbd> applies, and it asks
-    first — after resolving and showing you the real host list.
+    first, after resolving and showing the target hosts.
 
 ## Next
 

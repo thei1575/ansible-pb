@@ -1,4 +1,4 @@
-"""`pb-plugin.toml` — what a plugin declares about itself.
+"""`pb-plugin.toml` - what a plugin declares about itself.
 
 The manifest is the trust boundary and the version gate: pb reads it before it
 imports a single line of plugin code, so a plugin written for an older API is
@@ -66,7 +66,7 @@ def parse(text: str, source: Path = Path(MANIFEST_NAME)) -> Manifest:
     try:
         data = tomllib.loads(text)
     except tomllib.TOMLDecodeError as exc:
-        raise ManifestError(f"{source}: not valid TOML — {exc}") from exc
+        raise ManifestError(f"{source}: not valid TOML - {exc}") from exc
 
     table = data.get("plugin")
     if not isinstance(table, dict):
@@ -95,7 +95,7 @@ def parse(text: str, source: Path = Path(MANIFEST_NAME)) -> Manifest:
     # pb is imported and reloaded by name; a plugin claiming it would be
     # asking pb to drop itself out of sys.modules.
     if module == "pb" or module.startswith("pb."):
-        raise ManifestError(f"{source}: [plugin] module cannot be {module!r} — that is pb itself")
+        raise ManifestError(f"{source}: [plugin] module cannot be {module!r} - that is pb itself")
 
     for key in ("version", "summary", "homepage"):
         if key in table and not isinstance(table[key], str):
@@ -127,7 +127,7 @@ def load(root: Path) -> Manifest:
     try:
         text = path.read_text(encoding="utf-8")
     except FileNotFoundError as exc:
-        raise ManifestError(f"{path} is missing — every pb plugin needs one") from exc
+        raise ManifestError(f"{path} is missing - every pb plugin needs one") from exc
     except OSError as exc:
         raise ManifestError(f"{path}: {exc}") from exc
     return parse(text, path)

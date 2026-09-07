@@ -1,9 +1,9 @@
 # Install
 
-pb needs **Python 3.11+** and a POSIX terminal (macOS or Linux). It allocates a
-pty so Ansible keeps its colour, which is why there is no Windows build.
+pb runs on **Python 3.11+** in a POSIX terminal on macOS or Linux. Terminal
+output uses a pty to preserve Ansible's colour and streaming behaviour.
 
-It is not on PyPI yet, so install it from the repository.
+Current releases are distributed from the GitHub repository.
 
 === "uv"
 
@@ -43,12 +43,12 @@ or `PB_NO_UPDATE_CHECK=1`, turns the automatic check off.
 
 [Updating :octicons-arrow-right-24:](../reference/updates.md){ .md-button }
 
-## Ansible is not a dependency
+## Ansible installation
 
 pb declares only [Textual](https://textual.textualize.io/) and PyYAML. It
 drives whatever `ansible-playbook`, `ansible-inventory` and `ansible-vault` are
 already on your `PATH`, so installing pb cannot disturb how you installed
-Ansible — a distribution package, a pipx tool, a virtualenv, an
+Ansible - a distribution package, a pipx tool, a virtualenv, an
 `ansible-core` pin, all fine.
 
 The consequence is that pb needs Ansible to be *findable*. If `ansible
@@ -58,7 +58,7 @@ The consequence is that pb needs Ansible to be *findable*. If `ansible
 ## Add `.pb/` to your repo's `.gitignore`
 
 pb records every run under `.pb/runs/` inside the Ansible repository, and those
-records contain the complete Ansible output — which can include anything a task
+records contain the complete Ansible output - which can include anything a task
 printed.
 
 ```bash

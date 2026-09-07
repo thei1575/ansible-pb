@@ -4,7 +4,7 @@ pb is installed from git rather than PyPI, so the check reads the repository's
 releases over the GitHub API, falling back to its tags for a version that was
 tagged but never released. The release notes come from the release body, or
 failing that from the CHANGELOG entries between the version you have and the
-one on offer — so what the prompt shows is what you would be getting.
+one on offer - so what the prompt shows is what you would be getting.
 
 This is the only network connection pb makes on its own: one unauthenticated
 GET to api.github.com, at most once a day, sending nothing but a
@@ -79,8 +79,8 @@ class Release:
 
 
 def _get(url: str, timeout: float, accept: str) -> str | None:
-    """One GET. Returns None for anything that goes wrong — offline included."""
-    request = urllib.request.Request(  # noqa: S310 — the URL is a constant above
+    """One GET. Returns None for anything that goes wrong - offline included."""
+    request = urllib.request.Request(  # noqa: S310 - the URL is a constant above
         url,
         headers={
             "Accept": accept,
@@ -154,7 +154,7 @@ _HEADING_RE = re.compile(r"^##\s+\[?v?([^\]\s]+)\]?")
 def changelog_since(text: str, current: str) -> str:
     """The CHANGELOG sections for every version above `current`.
 
-    A heading that is not a version — `## [Unreleased]` above all of them — is
+    A heading that is not a version - `## [Unreleased]` above all of them - is
     left out along with its body: it is not what you would be getting.
     """
     kept: list[str] = []
@@ -253,7 +253,7 @@ def check(
     now: float | None = None,
     timeout: float = TIMEOUT,
 ) -> Result:
-    """Look for a newer pb. Blocks on the network — call it from a thread.
+    """Look for a newer pb. Blocks on the network - call it from a thread.
 
     `force` is the user asking for it there and then: it ignores the once-a-day
     interval, a version they skipped, and the opt-out, which only ever meant
@@ -338,5 +338,5 @@ def upgrade_command(tag: str, method: str | None = None) -> Upgrade:
     checkout = Path(__file__).resolve().parents[2]
     return Upgrade(
         label,
-        manual=f"pb runs from {checkout} — `git pull` there, or `git checkout {tag}`.",
+        manual=f"pb runs from {checkout} - `git pull` there, or `git checkout {tag}`.",
     )

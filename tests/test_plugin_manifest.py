@@ -1,6 +1,6 @@
 """The manifest is the gate: pb reads it before importing anything.
 
-So the tests here are mostly about refusals — a manifest pb cannot make sense
+So the tests here are mostly about refusals - a manifest pb cannot make sense
 of has to be a message, not a half-loaded plugin.
 """
 

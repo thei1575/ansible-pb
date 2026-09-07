@@ -236,7 +236,7 @@ class UpdatePrompt(ModalScreen[str | None]):
 
     def on_mount(self) -> None:
         # Unlike the other modals here, this one is pushed by a worker rather
-        # than by a keypress — it can arrive while the app is still starting
+        # than by a keypress - it can arrive while the app is still starting
         # up, and reach `on_mount` before the button row's own children are
         # mounted. Focus once the tree has settled, and never over a button
         # that is not there: which one has focus is a courtesy, not the point.

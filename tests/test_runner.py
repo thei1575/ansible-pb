@@ -26,7 +26,7 @@ def _stream(argv: list[str], cwd: Path, cancelled=lambda: False, timeout: float 
     thread.start()
     thread.join(timeout)
     if thread.is_alive():
-        pytest.fail(f"stream({argv}) did not return within {timeout}s — it hung")
+        pytest.fail(f"stream({argv}) did not return within {timeout}s - it hung")
     return result[0], lines
 
 # Real `ansible-playbook` output, with the banner rules and column padding
@@ -126,7 +126,7 @@ def test_stream_stops_when_cancelled(tmp_path: Path) -> None:
 
 
 def test_a_cancelled_run_still_returns(tmp_path: Path) -> None:
-    """The read loop ends on poll()+drain, not on EOF — including after a kill.
+    """The read loop ends on poll()+drain, not on EOF - including after a kill.
 
     Getting this wrong loops forever with a writer the parent never closed.
     """
@@ -138,7 +138,7 @@ def test_a_cancelled_run_still_returns(tmp_path: Path) -> None:
 def test_a_command_that_exits_at_once_still_has_its_output(tmp_path: Path, run: int) -> None:
     """The last thing a run prints is PLAY RECAP, so losing the tail is not
     cosmetic. Closing the pty slave in the parent let a BSD EOF discard the
-    buffer, and a command this short lost everything — intermittently, which
+    buffer, and a command this short lost everything - intermittently, which
     is why this runs more than once.
     """
     code, lines = _stream(["sh", "-c", "echo first; echo last"], tmp_path)

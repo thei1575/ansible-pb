@@ -3,7 +3,7 @@
 One round trip per host, one compound shell script, no Ansible: this answers
 "is the box healthy and is the service up" fast enough to sit behind a tab.
 The script is fed on stdin so nothing has to survive shell quoting, and it
-only ever reads — nothing here changes a host.
+only ever reads - nothing here changes a host.
 """
 
 from __future__ import annotations
@@ -52,7 +52,7 @@ class HostStatus:
     containers: list[tuple[str, str]] = field(default_factory=list)
     certs: list[tuple[str, str]] = field(default_factory=list)
 
-    def get(self, key: str, default: str = "—") -> str:
+    def get(self, key: str, default: str = "-") -> str:
         return self.values.get(key) or default
 
     @property
@@ -78,7 +78,7 @@ def probe(host: meta.Host, timeout: int = 45) -> HostStatus:
 
     if host.vars.get("ansible_connection") == "local" or host.name == "localhost":
         status.local = True
-        status.error = "local connection — nothing to probe"
+        status.error = "local connection - nothing to probe"
         return status
 
     target = host.address or host.name

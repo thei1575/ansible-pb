@@ -7,6 +7,17 @@ Before then, minor versions may break things.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-07
+
+### Changed
+
+* Reworked the product language around run control for Ansible repositories.
+  The README, documentation, package metadata, CLI help, issue forms, and
+  in-application copy now use one operational vocabulary.
+* Added the pb monogram and an operations-panel visual system across the
+  documentation and terminal interface, using slate surfaces and amber
+  controls.
+
 ### Added
 
 * **A plugin system.** pb can install plugins from GitHub and load them at
@@ -24,7 +35,7 @@ Before then, minor versions may break things.
   `Plugin` subclass. It can add a tab, add keys to a tab pb already has, add
   Doctor checks and command-palette entries, edit or veto a command before it
   runs, react to a finished run, append to any detail pane and the status
-  strip — or **replace** one of pb's own actions, with `base_action()` to wrap
+  strip - or **replace** one of pb's own actions, with `base_action()` to wrap
   the built-in rather than lose it. The site documents every hook under Reference → Writing a plugin.
 
   A new Plugins tab (`8`) installs, updates, enables and removes them, and
@@ -37,7 +48,7 @@ Before then, minor versions may break things.
   refuses to install silently when there is no terminal to ask in, records the
   exact commit, and runs nothing a plugin ships until pb next starts. A plugin
   that raises is switched off for the session, has its tabs removed, and
-  becomes a failed check on the Doctor tab — pb keeps running.
+  becomes a failed check on the Doctor tab - pb keeps running.
   `pb --no-plugins` (or `PB_NO_PLUGINS=1`) starts with none of them.
 
 * **pb tells you when there is a newer pb.** Once a day at startup it asks
@@ -48,8 +59,8 @@ Before then, minor versions may break things.
   and it asks again tomorrow. `ctrl+u` checks on demand, ignoring both the
   interval and anything you skipped. Doctor names the version you are running
   and how it was installed.
-* The install command is built for however pb was installed — `uv tool
-  install --force`, `pipx install --force` or `pip install --upgrade` — and
+* The install command is built for however pb was installed - `uv tool
+  install --force`, `pipx install --force` or `pip install --upgrade` - and
   pins the tag, because `uv tool upgrade` on a git URL keeps the ref it was
   installed with and would report success without changing anything. A clone
   installed with `-e` is not touched: pb says to `git pull` instead.
@@ -59,11 +70,11 @@ Before then, minor versions may break things.
   --no-update-check` or `PB_NO_UPDATE_CHECK=1` turns it off. Which version you
   skipped and when pb last looked live in `~/.config/pb/update.json`.
   [SECURITY.md](https://github.com/thei1575/ansible-pb/blob/main/.github/SECURITY.md)
-  says so in full — it previously promised
+  says so in full - it previously promised
   pb made no network connections at all, and no longer can.
 * **The inventory path is no longer fixed at `inventories/production`.** pb
-  follows Ansible's own precedence — `-i/--inventory`, then
-  `$ANSIBLE_INVENTORY`, then `[defaults] inventory` in `ansible.cfg` — so a
+  follows Ansible's own precedence - `-i/--inventory`, then
+  `$ANSIBLE_INVENTORY`, then `[defaults] inventory` in `ansible.cfg` - so a
   repo where Ansible already works needs no configuring. Failing all three it
   looks around: `inventories/<env>/` under any name, `inventory/`, or a
   `hosts.yml`, `hosts.ini` or `inventory.yml` at the root. `group_vars` and the
@@ -80,8 +91,8 @@ Before then, minor versions may break things.
   discovery, playbook, role and vault parsing, recap parsing, the pty streamer,
   secret redaction, the SSH probe's accessors, the CLI, the run history, the
   update check and the prompt it puts on screen, and the plugin system end to
-  end — all against a fixture Ansible repo built in `tmp_path`. No `ansible`
-  binary, no network.
+  end. All tests use a fixture Ansible repo built in `tmp_path`. The suite runs
+  without an `ansible` binary or network access.
 * GitHub Actions CI: `ruff check` plus the tests on Python 3.11, 3.12 and 3.13,
   once more on macOS for the pty handling, and a job that builds the sdist and
   wheel, installs the wheel clean and checks `pb --version` and that `pb.tcss`
@@ -91,7 +102,7 @@ Before then, minor versions may break things.
   hosts, and how to report privately), `CODE_OF_CONDUCT.md`, issue forms and a
   pull-request template.
 * A documentation site at
-  [thei1575.github.io/ansible-pb](https://thei1575.github.io/ansible-pb/) —
+  [thei1575.github.io/ansible-pb](https://thei1575.github.io/ansible-pb/) -
   [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) over
   `docs/`, with a page per tab, the inventory resolution rules worked through,
   a full key map, troubleshooting, and an inventory of every file and process
@@ -116,13 +127,13 @@ Before then, minor versions may break things.
 
 * **A row-highlight event dispatched after its pane had gone took the app
   down.** Filling a table queues one per row, and they are handled afterwards
-  — including while pb is shutting down, when the detail pane they would draw
+  - including while pb is shutting down, when the detail pane they would draw
   into no longer exists. Quitting while the initial load was still running
   could end in a traceback. There is nothing to redraw at that point, so
   nothing is.
 * **A run could lose its output on macOS, PLAY RECAP included.** The parent
   closed the pty slave as soon as the child was spawned, so the master reported
-  EOF the moment the child exited — and on BSD that EOF discards whatever is
+  EOF the moment the child exited - and on BSD that EOF discards whatever is
   still in the pty buffer. A short command could lose everything it printed.
   The parent now keeps the slave open for the length of the read loop, which
   ends on the child exiting with a drained buffer rather than on EOF. Found by
@@ -130,7 +141,7 @@ Before then, minor versions may break things.
 * An inventory that made Ansible print a warning was reported as
   "could not parse ansible-inventory output". `capture()` merges stderr into
   stdout and `ansible-inventory` warns on stderr, so the JSON was never the
-  whole output. pb now finds the JSON, keeps the warning, and shows it — so
+  whole output. pb now finds the JSON, keeps the warning, and shows it - so
   "no hosts" says why instead of looking like a pb bug.
 * `git_diff` built its separator with an f-string that had nothing to
   interpolate.
@@ -139,32 +150,33 @@ Before then, minor versions may break things.
 * Lines over the project's own 100-column limit in `app.py` and the SSH probe
   script; `ruff check` now passes on the whole tree.
 
-## [0.1.0] — 2026-09-07
+## [0.1.0] - 2026-09-07
 
 First release, extracted from the Ansible repo it grew up in.
 
 ### Added
 
-* **Playbooks** — run, dry-run or syntax-check any playbook, with `--tags` and
+* **Playbooks** - run, dry-run or syntax-check any playbook, with `--tags` and
   `--limit` pickers, and a pane showing the exact `ansible-playbook` command
   the current options produce.
-* **Blast radius on apply** — the real host list is resolved through
+* **Resolved scope on apply** - target hosts are resolved through
   `--list-hosts` and the hosts and addresses are named before you confirm.
-* **Inventory** — hosts, groups and resolved variables from
+* **Inventory** - hosts, groups and resolved variables from
   `ansible-inventory`, with credential-shaped values masked until revealed;
   ping, gather facts, or open an ssh session.
-* **Status** — a read-only SSH health probe per host: uptime, load, disk,
+* **Status** - a read-only SSH health probe per host: uptime, load, disk,
   memory, pending updates, failed units, running containers and certificate
   expiry.
-* **Roles** — task files, defaults, and which playbooks use each role.
-* **Vault** — view, edit, create and rekey the per-group vaults through
+* **Roles** - task files, defaults, and which playbooks use each role.
+* **Vault** - view, edit, create and rekey the per-group vaults through
   `ansible-vault`.
-* **History** — every run pb has made, recorded under `.pb/runs/` with the
+* **History** - every run pb has made, recorded under `.pb/runs/` with the
   command, tags, exit code, recap, the commit it ran against and the full
   captured output.
-* **Doctor** — a preflight over the whole repo.
+* **Doctor** - a preflight over the whole repo.
 * Uncommitted playbooks and roles are marked with a yellow `●`; `ctrl+g` shows
   the working-tree diff.
 
-[Unreleased]: https://github.com/thei1575/ansible-pb/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/thei1575/ansible-pb/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/thei1575/ansible-pb/releases/tag/v0.2.0
 [0.1.0]: https://github.com/thei1575/ansible-pb/releases/tag/v0.1.0

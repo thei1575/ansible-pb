@@ -1,4 +1,4 @@
-"""Installing from GitHub — exercised against a local git repository.
+"""Installing from GitHub - exercised against a local git repository.
 
 `owner/repo` resolves to a github.com URL, and everything after that is git
 cloning a URL. A repository on disk is such a URL, so the whole install,

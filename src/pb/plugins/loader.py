@@ -3,7 +3,7 @@
 Importing third-party code is the one place pb has to be paranoid: a plugin
 that raises on import, declares nothing, or was written for a different API
 must cost the user a row on the Plugins tab, not a traceback instead of their
-console. Nothing here raises — failures come back as `Failure` records.
+console. Nothing here raises - failures come back as `Failure` records.
 """
 
 from __future__ import annotations
@@ -71,7 +71,7 @@ def _load_one(store: Store, record: Record, loaded: Loaded) -> None:
         loaded.failures.append(
             Failure(
                 record.name,
-                f"{root} is missing" + (" — the linked directory moved?" if record.linked else ""),
+                f"{root} is missing" + (" - the linked directory moved?" if record.linked else ""),
                 stage="manifest",
             )
         )
@@ -88,7 +88,7 @@ def _load_one(store: Store, record: Record, loaded: Loaded) -> None:
             Failure(
                 record.name,
                 f"the manifest in {root} now calls itself {manifest.name!r}"
-                " — reinstall it under that name",
+                " - reinstall it under that name",
                 stage="manifest",
             )
         )
@@ -107,7 +107,7 @@ def _load_one(store: Store, record: Record, loaded: Loaded) -> None:
             Failure(
                 record.name,
                 f"imports {manifest.import_name!r}, which {clash} already uses"
-                " — one of them has to rename its module",
+                " - one of them has to rename its module",
                 stage="import",
             )
         )
@@ -173,8 +173,8 @@ def _import(root: Path, manifest: Manifest):
         if path not in sys.path:
             sys.path.insert(0, path)
 
-    # Drop any cached copy — of this plugin from an earlier pass, or of
-    # something else that had the name — and import from disk. `reload` will
+    # Drop any cached copy - of this plugin from an earlier pass, or of
+    # something else that had the name - and import from disk. `reload` will
     # not do: it merges into the old module dict, so a class a rewritten file
     # has deleted stays visible and gets loaded a second time.
     name = manifest.import_name
@@ -187,7 +187,7 @@ def _import(root: Path, manifest: Manifest):
 def _entry_points(module) -> list[type[Plugin] | Plugin]:
     """What in this module is a plugin.
 
-    `PB_PLUGIN` wins if the module sets it — a class, an instance, or a list
+    `PB_PLUGIN` wins if the module sets it - a class, an instance, or a list
     of either. Otherwise every Plugin subclass the module defines itself,
     which is the common case and needs no boilerplate.
     """
@@ -208,7 +208,7 @@ def _is_plugin_class(obj: object) -> bool:
 
 
 def check(store: Store) -> list[Failure]:
-    """Load everything and report only the problems — `pb plugin doctor`."""
+    """Load everything and report only the problems - `pb plugin doctor`."""
     return load_all(store).failures
 
 

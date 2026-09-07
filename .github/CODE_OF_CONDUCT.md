@@ -21,8 +21,7 @@ Examples of behaviour that contributes to a positive environment:
 * Giving and gracefully accepting constructive feedback
 * Accepting responsibility and apologising to those affected by our mistakes,
   and learning from the experience
-* Focusing on what is best not just for us as individuals, but for the overall
-  community
+* Focusing on what is best for the overall community
 
 Examples of unacceptable behaviour:
 
@@ -48,8 +47,8 @@ when appropriate.
 
 ## Scope
 
-This Code of Conduct applies within all community spaces — issues, pull
-requests, discussions, and commit history — and also applies when an individual
+This Code of Conduct applies within all community spaces - issues, pull
+requests, discussions, and commit history - and also applies when an individual
 is officially representing the project in public spaces.
 
 ## Enforcement
@@ -61,13 +60,13 @@ the reporter will be respected.
 
 Maintainers will follow these guidelines in determining consequences:
 
-1. **Correction** — a private, written warning, with clarity about the nature
+1. **Correction** - a private, written warning, with clarity about the nature
    of the violation and why the behaviour was inappropriate.
-2. **Warning** — a warning with consequences for continued behaviour, including
+2. **Warning** - a warning with consequences for continued behaviour, including
    no interaction with those involved for a specified period.
-3. **Temporary ban** — a temporary ban from any sort of interaction or public
+3. **Temporary ban** - a temporary ban from any sort of interaction or public
    communication with the community.
-4. **Permanent ban** — a permanent ban from any sort of public interaction
+4. **Permanent ban** - a permanent ban from any sort of public interaction
    within the community.
 
 ## Attribution

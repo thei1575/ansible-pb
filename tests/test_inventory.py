@@ -2,7 +2,7 @@
 
 `load_inventory` shells out to `ansible-inventory --list`. Rather than install
 Ansible, these tests put a stub of that name on `PATH` and check what pb makes
-of its output — including the shapes that break naive parsing.
+of its output - including the shapes that break naive parsing.
 """
 
 from __future__ import annotations
@@ -103,7 +103,7 @@ def test_load_inventory_repeats_what_ansible_said_when_there_is_no_json(
 def test_a_warning_printed_before_the_json_does_not_break_parsing(
     repo: meta.Repo, fake_ansible_inventory
 ) -> None:
-    """capture() merges stderr into stdout, and ansible warns on stderr — so
+    """capture() merges stderr into stdout, and ansible warns on stderr - so
     the JSON is usually not the whole output."""
     fake_ansible_inventory(
         "[WARNING]: Found both group and host with same name: web\n" + json.dumps(INVENTORY)

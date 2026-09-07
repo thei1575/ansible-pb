@@ -1,14 +1,13 @@
-name: Feature request
-description: Suggest something pb should do
+name: Product request
+description: Propose an operator workflow or repository capability
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        pb has a narrow job: making Ansible runs from a terminal less
-        error-prone. It deliberately does **not** reimplement Ansible — it shells
-        out and shows you the command. Requests that fit that shape are the
-        easiest to say yes to.
+        pb covers the path from repository inspection to recorded Ansible run.
+        Infrastructure actions use Ansible commands, and commands remain visible
+        for review. Describe the operator workflow that needs attention.
 
   - type: textarea
     id: problem
@@ -30,4 +29,4 @@ body:
     id: alternatives
     attributes:
       label: What you do instead today
-      description: A shell alias, a Makefile target, a wiki page — anything.
+      description: Describe the current command, script, tool, or manual procedure.
