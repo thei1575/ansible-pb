@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest something pb should do
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        pb has a narrow job: making Ansible runs from a terminal less
+        error-prone. It deliberately does **not** reimplement Ansible — it shells
+        out and shows you the command. Requests that fit that shape are the
+        easiest to say yes to.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: >
+        Describe the situation, not the feature. What are you doing today, and
+        what makes it slow or risky?
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you have in mind
+      description: Which tab would it live on? What would you press?
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you do instead today
+      description: A shell alias, a Makefile target, a wiki page — anything.

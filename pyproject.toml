@@ -31,6 +31,8 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/thei1575/ansible-pb"
 Issues = "https://github.com/thei1575/ansible-pb/issues"
+Changelog = "https://github.com/thei1575/ansible-pb/blob/main/CHANGELOG.md"
+Source = "https://github.com/thei1575/ansible-pb"
 
 [project.scripts]
 pb = "pb.app:main"
@@ -47,6 +49,18 @@ path = "src/pb/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pb"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src/pb",
+  "tests",
+  "README.md",
+  "CHANGELOG.md",
+  "LICENSE",
+  ".github/CONTRIBUTING.md",
+  ".github/SECURITY.md",
+  ".github/CODE_OF_CONDUCT.md",
+]
 
 [tool.ruff]
 line-length = 100

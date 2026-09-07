@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - run: uv run ruff check --output-format=github .
+
+  test:
+    name: Test (Python ${{ matrix.python }} on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.11", "3.12", "3.13"]
+        # pb allocates a pty, so macOS is worth one run to catch anything
+        # BSD-specific in the terminal handling.
+        include:
+          - os: macos-latest
+            python: "3.13"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python }}
+      - run: uv run pytest -q
+
+  build:
+    name: Build and install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - name: Build sdist and wheel
+        run: uv build
+      - name: Install the wheel into a clean environment
+        run: |
+          uv venv /tmp/check
+          uv pip install --python /tmp/check/bin/python dist/*.whl
+      - name: Check the CLI starts
+        run: /tmp/check/bin/pb --version
+      - name: Check the stylesheet shipped in the wheel
+        # A wheel without pb.tcss installs, starts, and then dies on first paint.
+        run: >
+          /tmp/check/bin/python -c
+          "import importlib.resources as r; assert r.files('pb').joinpath('pb.tcss').is_file()"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/

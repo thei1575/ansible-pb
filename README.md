@@ -1,5 +1,9 @@
 # pb
 
+[![CI](https://github.com/thei1575/ansible-pb/actions/workflows/ci.yml/badge.svg)](https://github.com/thei1575/ansible-pb/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
+
 A terminal console for an Ansible repository. Run playbooks, read the resolved
 inventory, probe hosts over SSH, manage per-group vaults, and keep a record of
 everything you applied — without leaving the terminal.
@@ -76,9 +80,9 @@ except through `ansible-vault` itself.
 
 Add `.pb/` to the repo's `.gitignore` — run records contain full Ansible output.
 
-## Repo layout it expects
+## The layout pb expects in *your* repo
 
-pb reads a conventional layout:
+pb reads a conventional Ansible layout:
 
 ```
 ansible.cfg                          # marks the repo root
@@ -93,12 +97,48 @@ The inventory path is currently fixed at `inventories/production`. If your repo
 puts it elsewhere, that is the one thing to change — see `Repo` in
 [`src/pb/meta.py`](src/pb/meta.py).
 
+## This repository
+
+```
+src/pb/            the package — one module per concern
+  app.py           the App, the tabs, and every key binding
+  meta.py          read-only introspection of the Ansible repo
+  runner.py        running ansible on a pty and streaming it back
+  run.py           the full-screen run view
+  history.py       the durable record under .pb/runs/
+  hoststatus.py    the read-only SSH health probe
+  widgets.py       the modal pickers, prompts and viewers
+  pb.tcss          the stylesheet
+tests/             pytest, against a fixture Ansible repo in tmp_path
+.github/           CI, issue and pull-request templates, and the
+                   contributing, security and conduct documents
+```
+
 ## Development
 
 ```bash
 uv sync
 uv run pb ~/my-ansible-repo
+uv run ruff check .
+uv run pytest
 ```
+
+The tests build a throwaway Ansible repo on disk, so they need neither an
+`ansible` binary nor a network. CI runs them on Python 3.11, 3.12 and 3.13, and
+once on macOS to keep the pty handling honest.
+
+## Contributing
+
+Issues and pull requests are welcome — see [CONTRIBUTING.md](.github/CONTRIBUTING.md)
+for how the code is laid out and what the invariants are (pb never
+reimplements Ansible, nothing runs on the UI thread, secrets stay masked by
+default).
+
+Changes worth knowing about are in [CHANGELOG.md](CHANGELOG.md).
+
+Please report security issues privately rather than in an issue — see
+[SECURITY.md](.github/SECURITY.md), which also explains exactly what pb touches on your
+machine and on your hosts.
 
 ## Licence
 
