@@ -55,14 +55,35 @@ own, with anything outside `[A-Za-z0-9-_]` replaced by `-`.
 encrypts it to the target path with `ansible-vault encrypt --output`, and
 removes it — whether or not the encryption succeeded.
 
+## Writes, in your home directory
+
+### `~/.config/pb/update.json`
+
+The only file pb writes outside the repository, and the only state it keeps
+between runs. Two keys, both about the [update check](updates.md) and neither
+about your repository:
+
+```json
+{
+  "last_check": 1789050153.4,
+  "skipped": "0.2.0"
+}
+```
+
+`last_check` is when pb last asked GitHub, so it asks at most once a day.
+`skipped` is a version you declined, so it is never offered again. Delete the
+file and pb checks on the next start and offers whatever it finds; a failure to
+write it is swallowed, the same as a run record.
+
+`$XDG_CONFIG_HOME` is honoured when set.
+
 ## What pb never writes
 
 - An encrypted file, except by invoking `ansible-vault` itself.
 - Anything under `playbooks/`, `roles/`, or the inventory.
-- Anything outside the repository root, other than what Ansible and your editor
-  do on their own.
-- Anything in your home directory. pb has no config file, no state directory,
-  no cache.
+- Anything outside the repository root and `~/.config/pb/`, other than what
+  Ansible and your editor do on their own.
+- A cache of anything it read from your repository.
 
 ## On your hosts
 

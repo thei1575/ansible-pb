@@ -137,6 +137,7 @@ nav:
   - Reference:
       - Command line: reference/cli.md
       - Key map: reference/keys.md
+      - Updating: reference/updates.md
       - Inventory resolution: reference/inventory-resolution.md
       - Files pb touches: reference/files.md
       - Troubleshooting: reference/troubleshooting.md

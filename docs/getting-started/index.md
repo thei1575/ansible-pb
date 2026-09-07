@@ -31,6 +31,18 @@ Check it landed:
 pb --version
 ```
 
+## Staying up to date
+
+pb is installed from git, so nothing on your machine knows to upgrade it.
+Instead pb asks GitHub once a day whether there is a newer release, shows you
+the changelog between the two versions and the exact command that would install
+it, and lets you accept it, skip that version, or be asked again tomorrow.
+
+<kbd>ctrl</kbd>+<kbd>u</kbd> checks whenever you want. `pb --no-update-check`,
+or `PB_NO_UPDATE_CHECK=1`, turns the automatic check off.
+
+[Updating :octicons-arrow-right-24:](../reference/updates.md){ .md-button }
+
 ## Ansible is not a dependency
 
 pb declares only [Textual](https://textual.textualize.io/) and PyYAML. It

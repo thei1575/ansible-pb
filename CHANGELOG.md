@@ -45,7 +45,7 @@ Before then, minor versions may break things.
   setting intact.
 * Doctor names the inventory pb settled on, where that came from, and whether
   it exists.
-* A test suite (`tests/`, COUNT tests) covering inventory resolution, repo
+* A test suite (`tests/`, 221 tests) covering inventory resolution, repo
   discovery, playbook, role and vault parsing, recap parsing, the pty streamer,
   secret redaction, the SSH probe's accessors, the CLI and the run history —
   the update check and the prompt it puts on screen — all against a fixture
