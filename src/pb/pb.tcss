@@ -143,6 +143,30 @@ ModalScreen {
     background: $surface;
 }
 
+/* --- the update prompt ------------------------------------------- */
+
+/* Sized to its notes rather than to the screen: a one-line release should
+   not open a dialog four fifths of the terminal tall. */
+.dialog-update {
+    width: 110;
+    max-width: 95%;
+    height: auto;
+    max-height: 90%;
+    padding: 1 2;
+    background: $surface;
+    border: round $accent;
+}
+
+.dialog-update .viewer {
+    height: auto;
+    max-height: 22;
+}
+
+#update-command, #update-note {
+    height: auto;
+    margin-top: 1;
+}
+
 .viewer {
     height: 1fr;
     background: $background;

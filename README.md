@@ -31,6 +31,40 @@ allocates a pty so Ansible keeps its colour.
 Ansible itself is deliberately *not* a dependency: pb drives whatever `ansible`
 is already on your `PATH`, so it never interferes with how you install it.
 
+### Staying up to date
+
+pb is installed from git, so it cannot be upgraded by a package manager that
+knows nothing about it. Instead pb asks GitHub once a day whether there is a
+newer release, and if there is, shows you what changed and the exact command
+that would install it:
+
+```
+pb 0.2.0 is out — you are running 0.1.0
+
+  ## [0.2.0] — 2026-09-07
+  ### Added
+  * …the changelog entries between the two versions…
+
+$ uv tool install --force git+https://github.com/thei1575/ansible-pb@v0.2.0
+
+  [ Update now ]  [ Skip this version ]  [ Later ]
+```
+
+Accept and pb runs that command and tells you to restart. Skip and that version
+is never offered again. Escape and it asks again tomorrow. The command is built
+for however pb was installed — `uv tool`, `pipx` or `pip`; a clone you installed
+with `-e` is left to `git pull`.
+
+`ctrl+u` checks whenever you want, ignoring the once-a-day interval and anything
+you skipped.
+
+The check is one unauthenticated GET to `api.github.com`, sending nothing but a
+`pb/<version>` User-Agent. To turn it off:
+
+```bash
+pb --no-update-check          # or: export PB_NO_UPDATE_CHECK=1
+```
+
 ## Use
 
 ```bash
@@ -122,6 +156,7 @@ src/pb/            the package — one module per concern
   run.py           the full-screen run view
   history.py       the durable record under .pb/runs/
   hoststatus.py    the read-only SSH health probe
+  update.py        the release check and the command that installs one
   widgets.py       the modal pickers, prompts and viewers
   pb.tcss          the stylesheet
 tests/             pytest, against a fixture Ansible repo in tmp_path

@@ -183,3 +183,72 @@ class Viewer(ModalScreen[None]):
 
     def action_close(self) -> None:
         self.dismiss(None)
+
+
+class UpdatePrompt(ModalScreen[str | None]):
+    """What pb offers when there is a newer version: take it, or skip it.
+
+    Dismisses with "update", "skip", or None for "ask me again tomorrow".
+    """
+
+    BINDINGS = [Binding("escape", "later", "Later")]
+
+    def __init__(
+        self,
+        title: str,
+        notes: str,
+        command: str = "",
+        note: str = "",
+        can_install: bool = True,
+    ) -> None:
+        super().__init__()
+        self._title = title
+        self._notes = notes or "(no release notes)"
+        self._command = command
+        self._note = note
+        self._can_install = can_install and bool(command)
+
+    def compose(self) -> ComposeResult:
+        with Vertical(classes="dialog-update"):
+            yield Label(self._title, classes="dialog-title")
+            with VerticalScroll(classes="viewer"):
+                yield Static(
+                    Syntax(self._notes, "markdown", theme="ansi_dark", word_wrap=True)
+                )
+            # Same contract as every other command pb runs: you see it first.
+            if self._can_install:
+                yield Label(Text(f"$ {self._command}", style="bold cyan"), id="update-command")
+            if self._note:
+                yield Label(Text(self._note, style="yellow"), id="update-note")
+            with Horizontal(classes="dialog-hint"):
+                yield Button(
+                    "Update now",
+                    variant="success",
+                    id="update",
+                    disabled=not self._can_install,
+                )
+                yield Button("Skip this version", variant="default", id="skip")
+                yield Button("Later", variant="default", id="later")
+            yield Label(
+                "skip never offers this version again · esc asks again tomorrow",
+                classes="dialog-hint",
+            )
+
+    def on_mount(self) -> None:
+        # Unlike the other modals here, this one is pushed by a worker rather
+        # than by a keypress — it can arrive while the app is still starting
+        # up, and reach `on_mount` before the button row's own children are
+        # mounted. Focus once the tree has settled, and never over a button
+        # that is not there: which one has focus is a courtesy, not the point.
+        self.call_after_refresh(self._focus_default)
+
+    def _focus_default(self) -> None:
+        wanted = self.query(f"#{'update' if self._can_install else 'skip'}")
+        if wanted:
+            wanted.first(Button).focus()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        self.dismiss(None if event.button.id == "later" else event.button.id)
+
+    def action_later(self) -> None:
+        self.dismiss(None)
