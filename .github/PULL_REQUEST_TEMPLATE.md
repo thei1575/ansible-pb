@@ -19,3 +19,5 @@
 - [ ] Any new view over inventory data goes through `meta.redact()`
 - [ ] `CHANGELOG.md` updated under `## [Unreleased]`, if the change is
       user-visible
+- [ ] `docs/` updated, if the change alters how pb behaves —
+      `mkdocs build --strict` passes

@@ -24,7 +24,7 @@ Before then, minor versions may break things.
   setting intact.
 * Doctor names the inventory pb settled on, where that came from, and whether
   it exists.
-* A test suite (`tests/`, 132 tests) covering inventory resolution, repo
+* A test suite (`tests/`, 148 tests) covering inventory resolution, repo
   discovery, playbook, role and vault parsing, recap parsing, the pty streamer,
   secret redaction, the SSH probe's accessors, the CLI and the run history —
   all against a fixture Ansible repo built in `tmp_path`. No `ansible` binary,
@@ -37,8 +37,18 @@ Before then, minor versions may break things.
   a patch has to hold), `SECURITY.md` (what pb touches on your machine and your
   hosts, and how to report privately), `CODE_OF_CONDUCT.md`, issue forms and a
   pull-request template.
-* `.editorconfig`, a Dependabot schedule, and a `dev` dependency group so
-  `uv sync` gets ruff and pytest.
+* A documentation site at
+  [thei1575.github.io/ansible-pb](https://thei1575.github.io/ansible-pb/) —
+  [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) over
+  `docs/`, with a page per tab, the inventory resolution rules worked through,
+  a full key map, troubleshooting, and an inventory of every file and process
+  pb touches. CI builds it with `--strict` on every pull request, so a broken
+  link fails the build; pushes to `main` publish it to GitHub Pages. The
+  changelog, `CONTRIBUTING.md` and `SECURITY.md` are included into the site
+  rather than copied.
+* `.editorconfig`, a Dependabot schedule, and `dev` and `docs` dependency
+  groups so `uv sync` gets ruff and pytest and
+  `uv run --group docs mkdocs serve` gets the site.
 
 ### Fixed
 

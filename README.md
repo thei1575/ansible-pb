@@ -3,6 +3,7 @@
 [![CI](https://github.com/thei1575/ansible-pb/actions/workflows/ci.yml/badge.svg)](https://github.com/thei1575/ansible-pb/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-thei1575.github.io%2Fansible--pb-14625f)](https://thei1575.github.io/ansible-pb/)
 
 A terminal console for an Ansible repository. Run playbooks, read the resolved
 inventory, probe hosts over SSH, manage per-group vaults, and keep a record of
@@ -59,7 +60,10 @@ pb -i inventories/staging
 resolves it. The Doctor tab names the inventory pb settled on and where that
 came from, which is the quickest way to check pb and Ansible agree.
 
-Press `?` inside for the full key map.
+Press `?` inside for the full key map. The full documentation is at
+**[thei1575.github.io/ansible-pb](https://thei1575.github.io/ansible-pb/)** —
+a page per tab, the inventory resolution rules, and everything pb touches on
+your machine and your hosts.
 
 | Tab | What it is for |
 |---|---|
@@ -125,6 +129,7 @@ src/pb/            the package — one module per concern
   widgets.py       the modal pickers, prompts and viewers
   pb.tcss          the stylesheet
 tests/             pytest, against a fixture Ansible repo in tmp_path
+docs/              the documentation site (Material for MkDocs)
 .github/           CI, issue and pull-request templates, and the
                    contributing, security and conduct documents
 ```
@@ -136,6 +141,7 @@ uv sync
 uv run pb ~/my-ansible-repo
 uv run ruff check .
 uv run pytest
+uv run --group docs mkdocs serve       # the documentation site, with reload
 ```
 
 The tests build a throwaway Ansible repo on disk, so they need neither an

@@ -16,6 +16,10 @@ dist/
 .pb/
 pb-*.log
 
+# Docs
+site/
+.cache/
+
 # Editors / OS
 .DS_Store
 .idea/
