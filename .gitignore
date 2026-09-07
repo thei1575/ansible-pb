@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+
+# Tooling
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# pb's own output, when running it against a repo from here
+.pb/
+pb-*.log
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

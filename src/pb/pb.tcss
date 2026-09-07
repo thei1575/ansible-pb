@@ -1,0 +1,159 @@
+/* pb — terminal console for an Ansible repo */
+
+Screen {
+    background: $background;
+}
+
+/* --- top status strip ------------------------------------------- */
+
+#statusbar {
+    dock: top;
+    height: 1;
+    padding: 0 1;
+    background: $panel;
+    color: $text-muted;
+}
+
+/* --- tabs ------------------------------------------------------- */
+
+TabbedContent {
+    height: 1fr;
+}
+
+TabPane {
+    padding: 0;
+}
+
+/* --- the two-pane split used by most tabs ----------------------- */
+
+.split {
+    height: 1fr;
+}
+
+.split > DataTable {
+    width: 1fr;
+    height: 1fr;
+    border-right: solid $panel;
+}
+
+.detail {
+    width: 52;
+    min-width: 34;
+    height: 1fr;
+    padding: 1 2;
+    background: $surface;
+}
+
+.detail-body {
+    width: 1fr;
+    height: auto;
+}
+
+DataTable {
+    background: $background;
+}
+
+DataTable > .datatable--cursor {
+    background: $primary;
+    color: $text;
+    text-style: bold;
+}
+
+DataTable > .datatable--header {
+    background: $panel;
+    color: $accent;
+    text-style: bold;
+}
+
+/* --- run-options strip at the bottom of the Playbooks tab -------- */
+
+#options {
+    dock: bottom;
+    height: 1;
+    padding: 0 1;
+    background: $panel;
+}
+
+/* --- run screen -------------------------------------------------- */
+
+#run-command {
+    dock: top;
+    height: 1;
+    padding: 0 1;
+    background: $panel;
+    color: $accent;
+    text-style: bold;
+}
+
+#run-status {
+    dock: bottom;
+    height: 1;
+    padding: 0 1;
+    background: $panel;
+}
+
+#run-log {
+    height: 1fr;
+    background: $background;
+    scrollbar-size-vertical: 1;
+}
+
+/* --- modals ------------------------------------------------------ */
+
+ModalScreen {
+    align: center middle;
+}
+
+.dialog {
+    width: 78;
+    max-width: 90%;
+    height: auto;
+    max-height: 80%;
+    padding: 1 2;
+    background: $surface;
+    border: round $accent;
+}
+
+.dialog-wide {
+    width: 110;
+    max-width: 95%;
+    height: 80%;
+    padding: 1 2;
+    background: $surface;
+    border: round $accent;
+}
+
+.dialog-title {
+    height: 1;
+    color: $accent;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+.dialog-hint {
+    height: auto;
+    color: $text-muted;
+    margin-top: 1;
+}
+
+.dialog SelectionList, .dialog OptionList {
+    height: auto;
+    max-height: 18;
+    border: none;
+    background: $surface;
+}
+
+.viewer {
+    height: 1fr;
+    background: $background;
+    padding: 0 1;
+}
+
+Input {
+    border: tall $panel;
+    background: $background;
+}
+
+Input:focus {
+    border: tall $accent;
+}
