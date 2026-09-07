@@ -18,6 +18,19 @@ reports `✔ ok`, `• warn` or `✘ fail`, with the detail that produced it.
 
 ## The checks, in order
 
+### `pb`
+
+The version you are running and how it was installed — `uv tool`, `pipx`, `pip`
+or a source checkout. **warn**, not **fail**, when a
+[newer release](../reference/updates.md) has been found:
+
+```
+pb   • warn   0.1.0 — 0.2.0 is available (ctrl+u)
+```
+
+It reports what the last check found rather than going back to the network, so
+re-running Doctor never waits on GitHub.
+
 ### `ansible`
 
 Runs `ansible --version` and shows its first line. Fails if there is no

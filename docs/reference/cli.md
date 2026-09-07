@@ -3,7 +3,7 @@
 pb's command line is small on purpose: everything else is a keypress inside.
 
 ```
-usage: pb [-h] [-i PATH] [--version] [path]
+usage: pb [-h] [-i PATH] [--no-update-check] [--version] [path]
 ```
 
 ## Arguments
@@ -40,6 +40,14 @@ what pb shows you is what Ansible will use.
 Without it, pb resolves the inventory the way Ansible does. See
 [Inventory resolution](inventory-resolution.md).
 
+### `--no-update-check`
+
+Stops pb asking GitHub for a newer release when it starts. `PB_NO_UPDATE_CHECK=1`
+does the same for every invocation.
+
+<kbd>ctrl</kbd>+<kbd>u</kbd> still checks when you ask it to — the flag turns off
+pb going to look on its own, not the feature. See [Updating](updates.md).
+
 ### `--version`
 
 Prints `pb <version>` and exits.
@@ -71,8 +79,8 @@ pb runs inside an Ansible repository — cd into one, or give it a path.
 
 ## Environment
 
-pb reads two variables of its own, and sets several for the Ansible processes it
-spawns.
+pb reads three variables of its own, and sets several for the Ansible processes
+it spawns.
 
 ### Read by pb
 
@@ -80,6 +88,8 @@ spawns.
 |---|---|
 | `ANSIBLE_INVENTORY` | Second in the inventory precedence, after `-i`. A comma-separated list is accepted; pb shows the first source and leaves the whole list to Ansible |
 | `EDITOR` | Used by `ansible-vault edit` from the [Vault](../guide/vault.md) tab — pb does not read it directly, Ansible does |
+| `PB_NO_UPDATE_CHECK` | Anything but empty, `0`, `false` or `no` turns the startup [update check](updates.md) off |
+| `XDG_CONFIG_HOME` | Where `pb/update.json` lives. Defaults to `~/.config` |
 
 ### Set for Ansible
 

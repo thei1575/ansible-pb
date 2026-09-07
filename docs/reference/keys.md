@@ -14,6 +14,7 @@ across tabs on purpose.
 | <kbd>?</kbd> | This help, inside pb |
 | <kbd>ctrl</kbd>+<kbd>r</kbd> | Reload everything from disk |
 | <kbd>ctrl</kbd>+<kbd>g</kbd> | The working-tree diff — `git status` plus the diff |
+| <kbd>ctrl</kbd>+<kbd>u</kbd> | Check for a newer pb — see [Updating](updates.md) |
 | <kbd>ctrl</kbd>+<kbd>p</kbd> | Command palette |
 | <kbd>q</kbd> | Quit — refused while a run that changes something is going |
 

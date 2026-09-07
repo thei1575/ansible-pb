@@ -9,6 +9,27 @@ Before then, minor versions may break things.
 
 ### Added
 
+* **pb tells you when there is a newer pb.** Once a day at startup it asks
+  GitHub for the latest release, and if there is one it shows the changelog
+  entries between the version you are running and that one, along with the
+  exact command that would install it. Accept and pb runs that command and
+  tells you to restart; skip and that version is never offered again; escape
+  and it asks again tomorrow. `ctrl+u` checks on demand, ignoring both the
+  interval and anything you skipped. Doctor names the version you are running
+  and how it was installed.
+* The install command is built for however pb was installed — `uv tool
+  install --force`, `pipx install --force` or `pip install --upgrade` — and
+  pins the tag, because `uv tool upgrade` on a git URL keeps the ref it was
+  installed with and would report success without changing anything. A clone
+  installed with `-e` is not touched: pb says to `git pull` instead.
+* This is the only network connection pb makes on its own: one unauthenticated
+  GET to `api.github.com` sending nothing but a `pb/<version>` User-Agent, and
+  the repository's `CHANGELOG.md` when there is something to show. `pb
+  --no-update-check` or `PB_NO_UPDATE_CHECK=1` turns it off. Which version you
+  skipped and when pb last looked live in `~/.config/pb/update.json`.
+  [SECURITY.md](https://github.com/thei1575/ansible-pb/blob/main/.github/SECURITY.md)
+  says so in full — it previously promised
+  pb made no network connections at all, and no longer can.
 * **The inventory path is no longer fixed at `inventories/production`.** pb
   follows Ansible's own precedence — `-i/--inventory`, then
   `$ANSIBLE_INVENTORY`, then `[defaults] inventory` in `ansible.cfg` — so a
@@ -24,11 +45,11 @@ Before then, minor versions may break things.
   setting intact.
 * Doctor names the inventory pb settled on, where that came from, and whether
   it exists.
-* A test suite (`tests/`, 148 tests) covering inventory resolution, repo
+* A test suite (`tests/`, 221 tests) covering inventory resolution, repo
   discovery, playbook, role and vault parsing, recap parsing, the pty streamer,
   secret redaction, the SSH probe's accessors, the CLI and the run history —
-  all against a fixture Ansible repo built in `tmp_path`. No `ansible` binary,
-  no network.
+  the update check and the prompt it puts on screen — all against a fixture
+  Ansible repo built in `tmp_path`. No `ansible` binary, no network.
 * GitHub Actions CI: `ruff check` plus the tests on Python 3.11, 3.12 and 3.13,
   once more on macOS for the pty handling, and a job that builds the sdist and
   wheel, installs the wheel clean and checks `pb --version` and that `pb.tcss`
@@ -52,6 +73,12 @@ Before then, minor versions may break things.
 
 ### Fixed
 
+* **A row-highlight event dispatched after its pane had gone took the app
+  down.** Filling a table queues one per row, and they are handled afterwards
+  — including while pb is shutting down, when the detail pane they would draw
+  into no longer exists. Quitting while the initial load was still running
+  could end in a traceback. There is nothing to redraw at that point, so
+  nothing is.
 * **A run could lose its output on macOS, PLAY RECAP included.** The parent
   closed the pty slave as soon as the child was spawned, so the master reported
   EOF the moment the child exited — and on BSD that EOF discards whatever is

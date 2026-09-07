@@ -50,8 +50,19 @@ worth knowing:
   by invoking `ansible-vault` itself. It reads your vault password from the
   repo's `.vault_pass` the same way Ansible does — keep that file `0600` and
   gitignored. pb never stores or transmits it.
-* **pb makes no network connections of its own.** No telemetry, no update
-  check, no outbound anything. The only traffic is Ansible's and SSH's.
+* **pb makes exactly one network connection of its own: the update check.**
+  Once a day at startup it GETs the release list of its own repository from
+  `api.github.com`, and — only when there is a newer version — its `CHANGELOG.md`
+  from `raw.githubusercontent.com`. Both are unauthenticated and anonymous: no
+  telemetry, nothing about you, your repo or your hosts, and the only thing
+  identifying at all is a `pb/<version>` User-Agent, which GitHub requires.
+  Which version you declined is remembered in `~/.config/pb/update.json`, on
+  your machine and nowhere else. `pb --no-update-check`, or
+  `PB_NO_UPDATE_CHECK=1`, stops it; `ctrl+u` then checks only when you ask.
+  Accepting an update runs an installer (`uv tool install`, `pipx install` or
+  `pip install`) against a tag of that same repository — pb shows you the whole
+  command first and runs nothing else. Everything else pb sends is Ansible's and
+  SSH's.
 
 ## Out of scope
 

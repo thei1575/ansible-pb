@@ -86,6 +86,15 @@ def _no_ambient_inventory(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("ANSIBLE_INVENTORY", raising=False)
 
 
+@pytest.fixture(autouse=True)
+def _no_ambient_update_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The update check reads $XDG_CONFIG_HOME and $PB_NO_UPDATE_CHECK, and
+    writes under the first. Point it at tmp_path so a test never reads or
+    overwrites the developer's own `~/.config/pb/update.json`."""
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    monkeypatch.delenv("PB_NO_UPDATE_CHECK", raising=False)
+
+
 def _write(path: Path, text: str) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
