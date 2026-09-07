@@ -9,6 +9,37 @@ Before then, minor versions may break things.
 
 ### Added
 
+* **A plugin system.** pb can install plugins from GitHub and load them at
+  start-up, so the things only your infrastructure cares about no longer have
+  to live in pb.
+
+  ```bash
+  pb plugin install owner/pb-terraform     # or owner/repo@v1.2, or any git URL
+  pb plugin new pb-mine                    # a working plugin, in a git repo
+  pb plugin link .                         # develop against your own checkout
+  pb plugin doctor                         # does it parse? does it import?
+  ```
+
+  A plugin is a git repository with a `pb-plugin.toml` and a module defining a
+  `Plugin` subclass. It can add a tab, add keys to a tab pb already has, add
+  Doctor checks and command-palette entries, edit or veto a command before it
+  runs, react to a finished run, append to any detail pane and the status
+  strip — or **replace** one of pb's own actions, with `base_action()` to wrap
+  the built-in rather than lose it. `docs/PLUGINS.md` documents every hook.
+
+  A new Plugins tab (`8`) installs, updates, enables and removes them, and
+  shows what each one adds and which commit it is on. Installing, enabling and
+  removing take effect the next time pb starts: plugin code is imported once,
+  and pb does not pretend to swap it under a live UI.
+
+  A plugin runs inside pb with your permissions and there is no sandbox, so
+  installing asks for confirmation and prints what it is about to clone,
+  refuses to install silently when there is no terminal to ask in, records the
+  exact commit, and runs nothing a plugin ships until pb next starts. A plugin
+  that raises is switched off for the session, has its tabs removed, and
+  becomes a failed check on the Doctor tab — pb keeps running.
+  `pb --no-plugins` (or `PB_NO_PLUGINS=1`) starts with none of them.
+
 * **The inventory path is no longer fixed at `inventories/production`.** pb
   follows Ansible's own precedence — `-i/--inventory`, then
   `$ANSIBLE_INVENTORY`, then `[defaults] inventory` in `ansible.cfg` — so a
@@ -24,11 +55,11 @@ Before then, minor versions may break things.
   setting intact.
 * Doctor names the inventory pb settled on, where that came from, and whether
   it exists.
-* A test suite (`tests/`, 132 tests) covering inventory resolution, repo
+* A test suite (`tests/`, 292 tests) covering inventory resolution, repo
   discovery, playbook, role and vault parsing, recap parsing, the pty streamer,
-  secret redaction, the SSH probe's accessors, the CLI and the run history —
-  all against a fixture Ansible repo built in `tmp_path`. No `ansible` binary,
-  no network.
+  secret redaction, the SSH probe's accessors, the CLI, the run history, and
+  the plugin system end to end — all against a fixture Ansible repo built in
+  `tmp_path`. No `ansible` binary, no network.
 * GitHub Actions CI: `ruff check` plus the tests on Python 3.11, 3.12 and 3.13,
   once more on macOS for the pty handling, and a job that builds the sdist and
   wheel, installs the wheel clean and checks `pb --version` and that `pb.tcss`

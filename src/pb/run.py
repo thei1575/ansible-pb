@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from collections import deque
+from collections.abc import Mapping
 
 from rich.text import Text
 from textual import work
@@ -14,6 +15,7 @@ from textual.widgets import Label, RichLog
 from textual.worker import get_current_worker
 
 from . import history, meta, runner
+from .plugins.api import RunResult
 
 
 class RunScreen(Screen[int]):
@@ -36,12 +38,20 @@ class RunScreen(Screen[int]):
     def running(self) -> bool:
         return self._code is None
 
-    def __init__(self, argv: list[str], repo: meta.Repo, label: str) -> None:
+    def __init__(
+        self,
+        argv: list[str],
+        repo: meta.Repo,
+        label: str,
+        env: Mapping[str, str] | None = None,
+    ) -> None:
         super().__init__()
         self._argv = argv
         self._repo = repo
         self._cwd = repo.root
         self._label = label
+        # Extra environment a plugin asked for, merged into the child's.
+        self._env = dict(env or {})
         self._pending: deque[str] = deque()
         self._lines: list[str] = []
         self._cancel = False
@@ -73,6 +83,7 @@ class RunScreen(Screen[int]):
             self._pending.append,
             lambda: self._cancel or worker.is_cancelled,
             cols=width,
+            extra_env=self._env,
         )
         self._pending.append(f"\x00exit:{code}")
 
@@ -94,14 +105,28 @@ class RunScreen(Screen[int]):
         self._code = code
         self._elapsed = time.monotonic() - self._started
         self._tick()
-        history.record(
+        recap = runner.parse_recap(self._lines)
+        record = history.record(
             self._repo,
             self._label,
             self._argv,
             self._wall_started,
             code,
             self._lines,
-            runner.parse_recap(self._lines),
+            recap,
+        )
+        # The plugins see a finished run only once it is in the history, so
+        # `result.run` is something they can go back and read.
+        self.app.plugins.after_run(
+            RunResult(
+                argv=list(self._argv),
+                label=self._label,
+                exit_code=code,
+                duration=self._elapsed,
+                recap=recap,
+                lines=list(self._lines),
+                run=record,
+            )
         )
         if code != 0:
             self.app.bell()

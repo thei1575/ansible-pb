@@ -66,6 +66,15 @@ jobs:
         run: >
           /tmp/check/bin/python -c
           "import importlib.resources as r; assert r.files('pb').joinpath('pb.tcss').is_file()"
+      - name: Check the plugin subcommand shipped and works
+        # The plugin system is a subpackage; a wheel that missed it would only
+        # fail when someone reached for `pb plugin`.
+        run: |
+          /tmp/check/bin/pb plugin --help > /dev/null
+          PB_HOME=/tmp/pb-home /tmp/check/bin/pb plugin doctor
+          PB_HOME=/tmp/pb-home /tmp/check/bin/pb plugin new pb-example --dir /tmp
+          PB_HOME=/tmp/pb-home /tmp/check/bin/pb plugin link /tmp/pb-example
+          PB_HOME=/tmp/pb-home /tmp/check/bin/pb plugin doctor
       - uses: actions/upload-artifact@v7
         with:
           name: dist

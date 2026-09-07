@@ -23,6 +23,14 @@ from textual.containers import Horizontal, VerticalScroll
 from textual.widgets import DataTable, Footer, Static, TabbedContent, TabPane
 
 from . import __version__, history, hoststatus, meta
+from .plugins import api as plugin_api
+from .plugins import cli as plugin_cli
+from .plugins import loader as plugin_loader
+from .plugins import manage as plugin_manage
+from .plugins import source as plugin_source
+from .plugins import store as plugin_store
+from .plugins.host import PluginCommands, PluginHost
+from .plugins.store import Store
 from .run import RunScreen
 from .widgets import AskText, Confirm, PickMany, PickOne, Viewer
 
@@ -37,6 +45,7 @@ TAB_TABLES = {
     "tab-vault": "#vaults",
     "tab-history": "#history",
     "tab-doctor": "#doctor",
+    "tab-plugins": "#plugins",
 }
 
 DIRTY = "● "     # marks a file that differs from HEAD
@@ -157,6 +166,16 @@ class DoctorTable(DataTable):
     BINDINGS = [Binding("r", "app.recheck", "Re-check")]
 
 
+class PluginTable(DataTable):
+    BINDINGS = [
+        Binding("i", "app.plugin_install", "Install"),
+        Binding("u", "app.plugin_update", "Update"),
+        Binding("e", "app.plugin_toggle", "Enable/disable"),
+        Binding("r", "app.plugin_remove", "Remove"),
+        Binding("o", "app.plugin_info", "Details"),
+    ]
+
+
 # --- the app ----------------------------------------------------------
 
 
@@ -176,10 +195,27 @@ class PbApp(App[None]):
         Binding("5", "tab('tab-vault')", "", show=False),
         Binding("6", "tab('tab-history')", "", show=False),
         Binding("7", "tab('tab-doctor')", "", show=False),
+        Binding("8", "tab('tab-plugins')", "", show=False),
     ]
 
-    def __init__(self, root: Path, inventory: str | None = None) -> None:
-        super().__init__()
+    # The command palette gains whatever the plugins put in it.
+    COMMANDS = App.COMMANDS | {PluginCommands}
+
+    def __init__(
+        self, root: Path, inventory: str | None = None, plugins: bool = True
+    ) -> None:
+        # Plugins are imported before the App exists, because a plugin may
+        # ship a stylesheet and Textual wants every CSS path up front. Nothing
+        # a plugin contributes is installed until on_mount.
+        self.store = Store()
+        loaded = plugin_loader.load_all(self.store) if plugins else plugin_loader.Loaded()
+        super().__init__(css_path=[self.CSS_PATH, *loaded.css])
+        self.plugins = PluginHost(self, loaded)
+        self.plugins_enabled = plugins
+        # A copy, so a plugin's tab can register where focus goes without
+        # editing module state shared with every other instance.
+        self.tab_tables = dict(TAB_TABLES)
+        self.plugin_records = list(loaded.records.values())
         self.repo = meta.Repo.discover(root, inventory)
         self.options = RunOptions()
         self.playbooks: list[meta.Playbook] = []
@@ -230,9 +266,14 @@ class PbApp(App[None]):
                         yield Static("", id="history-detail", classes="detail-body")
             with TabPane("Doctor", id="tab-doctor"):
                 yield DoctorTable(cursor_type="row", zebra_stripes=True, id="doctor")
+            with TabPane("Plugins", id="tab-plugins"):
+                with Horizontal(classes="split"):
+                    yield PluginTable(cursor_type="row", zebra_stripes=True, id="plugins")
+                    with VerticalScroll(classes="detail"):
+                        yield Static("", id="plugin-detail", classes="detail-body")
         yield Footer()
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         self.query_one("#playbooks", DataTable).add_columns(
             "Playbook", "Kind", "Targets", "Roles", "What it does"
         )
@@ -246,18 +287,36 @@ class PbApp(App[None]):
             "When", "What", "Result", "Took", "Recap"
         )
         self.query_one("#doctor", DataTable).add_columns("Check", "Status", "Detail")
+        self.query_one("#plugins", DataTable).add_columns(
+            "Plugin", "Version", "State", "Where from", "What it adds"
+        )
         self._render_options()
+        # Plugins go in once the tree exists, so a plugin's activate() can
+        # query its own tab, and before the first reload, so its hooks see the
+        # repo being loaded like any other.
+        await self.plugins.install()
+        self._render_plugins_table()
+        self._render_plugin_detail()
         self.query_one("#playbooks", DataTable).focus()
         self.reload()
+
+    def on_unmount(self) -> None:
+        self.plugins.shutdown()
 
     def action_tab(self, tab: str) -> None:
         self.query_one(TabbedContent).active = tab
         self._focus_pane(tab)
 
     def _focus_pane(self, pane_id: str | None) -> None:
-        table = TAB_TABLES.get(pane_id or "")
-        if table:
-            self.query_one(table, DataTable).focus()
+        # A core tab focuses its table; a plugin tab names whatever it likes,
+        # so this must not assume a DataTable. A selector that matches nothing
+        # (a plugin removed at runtime) is not worth crashing over.
+        selector = self.tab_tables.get(pane_id or "")
+        if not selector:
+            return
+        found = self.query(selector)
+        if found:
+            found.first().focus()
 
     # --- loading ------------------------------------------------------
 
@@ -341,6 +400,9 @@ class PbApp(App[None]):
         self._render_host_detail()
         self._render_role_detail()
         self._render_vault_detail()
+        # Last, so a plugin's reloaded() sees every tab already repainted and
+        # the repo fully read.
+        self.plugins.reloaded()
         if inventory.error:
             self.notify(f"inventory: {inventory.error}", severity="error", timeout=10)
         elif inventory.warning:
@@ -361,6 +423,8 @@ class PbApp(App[None]):
         vault_pass = self.repo.vault_pass_file
         if not vault_pass.exists():
             text.append("   .vault_pass MISSING", style="bold red")
+        for segment in self.plugins.status_bar():
+            text.append(segment)
         self.query_one("#statusbar", Static).update(text)
 
     # --- current selection helpers -------------------------------------
@@ -402,6 +466,10 @@ class PbApp(App[None]):
     def run_record(self) -> history.Run | None:
         return self._current("history", self.runs, "id")
 
+    @property
+    def plugin_record(self) -> plugin_store.Record | None:
+        return self._current("plugins", self.plugin_records, "name")
+
     @on(DataTable.RowHighlighted)
     def _selection_moved(self, event: DataTable.RowHighlighted) -> None:
         which = event.data_table.id
@@ -417,11 +485,18 @@ class PbApp(App[None]):
             self._render_status_detail()
         elif which == "history":
             self._render_run_detail()
+        elif which == "plugins":
+            self._render_plugin_detail()
 
     # --- detail panes ---------------------------------------------------
 
     def _render_options(self) -> None:
         self.query_one("#options", Static).update(self.options.render())
+
+    def _plugin_detail(self, pane: str, subject: object, text: Text) -> None:
+        """Append whatever the plugins want to add to a detail pane."""
+        for block in self.plugins.detail(pane, subject):
+            text.append(block)
 
     def _render_playbook_detail(self) -> None:
         pb = self.playbook
@@ -455,6 +530,7 @@ class PbApp(App[None]):
             text.append("prompts for input — runs in the foreground\n\n", style="yellow")
         text.append("would run\n", style="bold")
         text.append(_wrap(" ".join(shlex.quote(a) for a in self._argv(pb, "run"))), style="green")
+        self._plugin_detail("playbook", pb, text)
         target.update(text)
 
     def _render_host_detail(self) -> None:
@@ -495,6 +571,7 @@ class PbApp(App[None]):
             )
         if len(interesting) > 24:
             text.append(f"  … {len(interesting) - 24} more — press i\n", style="dim")
+        self._plugin_detail("host", host, text)
         target.update(text)
 
     def _render_role_detail(self) -> None:
@@ -514,6 +591,7 @@ class PbApp(App[None]):
         text.append("\nused by\n", style="bold")
         for name in role.used_by or ["(no playbook references this role)"]:
             text.append(f"  {name}\n", style="cyan" if role.used_by else "red")
+        self._plugin_detail("role", role, text)
         target.update(text)
 
     def _render_vault_detail(self) -> None:
@@ -535,6 +613,7 @@ class PbApp(App[None]):
         text.append("  create a vault for a new group\n")
         text.append("k", style="bold")
         text.append("  rekey every vault\n")
+        self._plugin_detail("vault", vault, text)
         target.update(text)
 
     def _render_status_table(self) -> None:
@@ -620,6 +699,7 @@ class PbApp(App[None]):
             for name, expiry in probe.certs:
                 text.append(f"  {name}\n")
                 text.append(f"    expires {expiry}\n", style="dim")
+        self._plugin_detail("status", host, text)
         target.update(text)
 
     def _render_history_table(self) -> None:
@@ -667,6 +747,7 @@ class PbApp(App[None]):
         text.append("  open the saved output\n")
         text.append("a", style="bold")
         text.append("  run the same command again\n")
+        self._plugin_detail("history", run, text)
         target.update(text)
 
     # --- building and launching commands ---------------------------------
@@ -684,21 +765,71 @@ class PbApp(App[None]):
             argv.append("--diff")
         return argv + options
 
-    def _launch(self, argv: list[str], label: str) -> None:
+    def _authorize(
+        self,
+        argv: list[str],
+        label: str,
+        mode: str,
+        pb: meta.Playbook | None = None,
+    ) -> plugin_api.RunRequest | None:
+        """Put a command past the plugins. None means a plugin stopped it.
+
+        Whatever comes back is what runs *and* what the user sees, so a plugin
+        that edits argv cannot make pb run something it did not display.
+        """
+        request = plugin_api.RunRequest(argv=list(argv), label=label, mode=mode, playbook=pb)
+        if not self.plugins.before_run(request):
+            self.notify(
+                f"{request.vetoed_by} stopped this run"
+                + (f": {request.reason}" if request.reason else ""),
+                severity="warning",
+                timeout=10,
+            )
+            return None
+        return request
+
+    def launch(
+        self,
+        argv: list[str],
+        label: str,
+        mode: str = "ad-hoc",
+        pb: meta.Playbook | None = None,
+    ) -> None:
+        """Run a command on the full-screen run view, streamed and recorded."""
+        request = self._authorize(argv, label, mode, pb)
+        if request is not None:
+            self._start(request)
+
+    def _start(self, request: plugin_api.RunRequest) -> None:
         def done(_code: int | None) -> None:
             # A finished run is new history, and an apply may have changed the
             # working tree, so refresh rather than leave the tabs stale.
             self.reload()
 
-        self.push_screen(RunScreen(argv, self.repo, label), done)
+        self.push_screen(
+            RunScreen(request.argv, self.repo, request.label, env=request.env), done
+        )
 
-    def _foreground(self, argv: list[str]) -> None:
+    def _foreground(
+        self,
+        argv: list[str],
+        label: str = "",
+        mode: str = "foreground",
+        pb: meta.Playbook | None = None,
+    ) -> None:
         """Drop out of the TUI for anything that needs a real terminal."""
+        request = self._authorize(argv, label or argv[0], mode, pb)
+        if request is not None:
+            self._start_foreground(request)
+
+    def _start_foreground(self, request: plugin_api.RunRequest) -> None:
+        argv = request.argv
+        env = {**os.environ, **request.env} if request.env else None
         with self.suspend():
             os.system("clear")
             print("$ " + " ".join(shlex.quote(a) for a in argv) + "\n")
             try:
-                subprocess.run(argv, cwd=str(self.repo.root))
+                subprocess.run(argv, cwd=str(self.repo.root), env=env)
             except FileNotFoundError as exc:
                 print(f"pb: {exc}")
             input("\n-- press enter to return to pb --")
@@ -710,21 +841,26 @@ class PbApp(App[None]):
         pb = self.playbook
         if pb is None:
             return
-        argv = self._argv(pb, mode)
         label, _ = MODE_LABELS[mode]
+        # The plugins get the command before the confirmation does, so that a
+        # plugin which edits argv cannot leave the user approving something
+        # else. What is displayed is what runs, as it always was.
+        request = self._authorize(self._argv(pb, mode), f"{pb.name} ({label})", mode, pb)
+        if request is None:
+            return
         if pb.interactive and mode == "run":
-            self._foreground(argv)
+            self._start_foreground(request)
             return
 
         def go(ok: bool | None) -> None:
             if ok:
-                self._launch(argv, f"{pb.name} ({label})")
+                self._start(request)
 
         if mode == "run":
             # Patterns are not an answer to "what am I about to change", so ask
             # ansible for the real host list before showing the confirmation.
             self.notify("resolving which hosts this would touch…")
-            self._confirm_apply(pb, argv, go)
+            self._confirm_apply(pb, request.argv, go)
         else:
             go(True)
 
@@ -846,12 +982,12 @@ class PbApp(App[None]):
     def action_ping(self) -> None:
         host = self.host
         if host:
-            self._launch(["ansible", host.name, "-m", "ping"], f"ping {host.name}")
+            self.launch(["ansible", host.name, "-m", "ping"], f"ping {host.name}")
 
     def action_facts(self) -> None:
         host = self.host
         if host:
-            self._launch(["ansible", host.name, "-m", "setup"], f"facts {host.name}")
+            self.launch(["ansible", host.name, "-m", "setup"], f"facts {host.name}")
 
     def action_inspect(self) -> None:
         host = self.host
@@ -881,7 +1017,7 @@ class PbApp(App[None]):
             return
         user = host.vars.get("ansible_user", "root")
         target = host.address or host.name
-        self._foreground(["ssh", f"{user}@{target}"])
+        self._foreground(["ssh", f"{user}@{target}"], f"ssh {host.name}", mode="ssh")
 
     # --- role actions -------------------------------------------------------
 
@@ -935,7 +1071,9 @@ class PbApp(App[None]):
         vault = self.vault
         if vault:
             self._foreground(
-                ["ansible-vault", "edit", str(vault.path.relative_to(self.repo.root))]
+                ["ansible-vault", "edit", str(vault.path.relative_to(self.repo.root))],
+                f"edit vault {vault.group}",
+                mode="vault",
             )
 
     def action_new(self) -> None:
@@ -965,7 +1103,7 @@ class PbApp(App[None]):
         def go(ok: bool | None) -> None:
             if ok:
                 paths = [str(v.path.relative_to(self.repo.root)) for v in self.vaults]
-                self._foreground(["ansible-vault", "rekey", *paths])
+                self._foreground(["ansible-vault", "rekey", *paths], "rekey vaults", mode="vault")
 
         self.push_screen(
             Confirm(
@@ -1025,7 +1163,7 @@ class PbApp(App[None]):
 
         def go(ok: bool | None) -> None:
             if ok:
-                self._launch(list(run.argv), f"{run.label} (repeat)")
+                self.launch(list(run.argv), f"{run.label} (repeat)", mode="repeat")
 
         if run.applied:
             body = Text("Run this again, exactly as recorded?\n\n")
@@ -1052,7 +1190,11 @@ class PbApp(App[None]):
     def _tab_changed(self, event: TabbedContent.TabActivated) -> None:
         pane_id = event.pane.id if event.pane else None
         self._focus_pane(pane_id)
-        if pane_id == "tab-doctor" and self.query_one("#doctor", DataTable).row_count == 0:
+        if pane_id == "tab-plugins":
+            # Another terminal may have installed something since pb started.
+            self._render_plugins_table()
+            self._render_plugin_detail()
+        elif pane_id == "tab-doctor" and self.query_one("#doctor", DataTable).row_count == 0:
             self._run_doctor()
         elif pane_id == "tab-status" and not self.host_status:
             self.action_refresh_status()
@@ -1149,6 +1291,226 @@ class PbApp(App[None]):
             "installed" if code == 0 else "not installed (optional)",
         )
 
+        # Plugin rows go last: a plugin that failed to load, and whatever the
+        # ones that did load want to check for themselves.
+        for check in self.plugins.doctor():
+            add(check.name, check.ok, check.detail)
+
+    # --- plugins -------------------------------------------------------------
+
+    def _render_plugins_table(self) -> None:
+        table = self.query_one("#plugins", DataTable)
+        table.clear()
+        self.plugin_records = self.store.records()
+        for record in self.plugin_records:
+            table.add_row(
+                Text(record.name, style="bold"),
+                record.version or "—",
+                self._plugin_state(record),
+                Text(_short(record.origin, 34) or "—", style="dim"),
+                Text(_short(record.summary or "", 40) or "—", style="dim"),
+                key=record.name,
+            )
+
+    def _plugin_state(self, record: plugin_store.Record) -> Text:
+        """The one-word answer to "is this thing working"."""
+        if not self.plugins_enabled:
+            return Text("— off (--no-plugins)", style="dim")
+        if not record.enabled:
+            return Text("disabled", style="dim")
+        failure = self.plugins.failure_for(record.name)
+        if failure is not None:
+            return Text(f"✘ {failure.stage}", style="bold red")
+        if self.plugins.is_active(record.name):
+            return Text("✔ loaded" + (" (linked)" if record.linked else ""), style="green")
+        return Text("• pending restart", style="yellow")
+
+    def _render_plugin_detail(self) -> None:
+        target = self.query_one("#plugin-detail", Static)
+        record = self.plugin_record
+        if record is None:
+            target.update(Text(PLUGIN_EMPTY, style="dim"))
+            return
+
+        text = Text()
+        text.append(f"{record.name}\n", style="bold bright_cyan")
+        text.append(f"{record.version or 'no version'}\n\n", style="dim")
+        if record.summary:
+            text.append(record.summary + "\n\n")
+        text.append("where from\n", style="bold")
+        text.append(f"  {record.origin or '—'}\n")
+        if record.ref:
+            text.append(f"  ref {record.ref}\n", style="cyan")
+        if record.commit:
+            text.append(f"  commit {record.short_commit}\n", style="dim")
+        text.append(f"  {self.store.root_for(record)}\n\n", style="dim")
+
+        plugin = self.plugins.plugin(record.name)
+        failure = self.plugins.failure_for(record.name)
+        text.append("state\n", style="bold")
+        text.append("  ")
+        text.append(self._plugin_state(record))
+        text.append("\n")
+        if failure is not None:
+            text.append(f"  {failure.message}\n", style="red")
+        if plugin is not None:
+            hooks = ", ".join(_plugin_hooks(plugin)) or "nothing"
+            text.append(f"  hooks: {hooks}\n", style="dim")
+        text.append("\n")
+
+        text.append("i", style="bold")
+        text.append("  install another from GitHub\n")
+        text.append("u", style="bold")
+        text.append("  update this one\n")
+        text.append("e", style="bold")
+        text.append(f"  {'enable' if not record.enabled else 'disable'} it\n")
+        text.append("r", style="bold")
+        text.append("  remove it\n")
+        text.append("o", style="bold")
+        text.append("  everything pb knows about it\n\n")
+        text.append(
+            "Installing, enabling and removing take effect when pb next starts:\n"
+            "plugin code is imported once, and swapping it under a live UI is\n"
+            "not something pb will pretend to do.\n",
+            style="dim",
+        )
+        target.update(text)
+
+    def action_plugin_install(self) -> None:
+        def got_source(spec: str | None) -> None:
+            if not spec:
+                return
+            try:
+                resolved = plugin_source.resolve(spec)
+            except plugin_source.SourceError as exc:
+                self.notify(str(exc), severity="error", timeout=10)
+                return
+
+            body = Text()
+            body.append("pb will clone\n\n", style="bold")
+            body.append(f"  {resolved.url}\n", style="green")
+            if resolved.ref:
+                body.append(f"  at {resolved.ref}\n", style="cyan")
+            body.append("\n" + plugin_cli.TRUST_NOTICE + "\n", style="yellow")
+
+            def go(ok: bool | None) -> None:
+                if ok:
+                    self.notify(f"cloning {resolved.url}…")
+                    self._install_plugin(spec)
+
+            self.push_screen(Confirm("Install this plugin?", body, "Install"), go)
+
+        self.push_screen(
+            AskText(
+                "Install a plugin",
+                placeholder="owner/repo, owner/repo@v1.0, a git URL, or a path",
+                hint="enter installs · esc cancels",
+            ),
+            got_source,
+        )
+
+    @work(thread=True)
+    def _install_plugin(self, spec: str) -> None:
+        try:
+            done = plugin_manage.install(self.store, spec)
+        except plugin_cli.EXPECTED as exc:
+            self.call_from_thread(self._plugin_failed, "install", exc)
+            return
+        self.call_from_thread(
+            self._plugin_done,
+            f"installed {done.record.name} {done.record.version} — restart pb to load it",
+        )
+
+    def action_plugin_update(self) -> None:
+        record = self.plugin_record
+        if record is None:
+            return
+        if record.linked:
+            self.notify(
+                f"{record.name} is your working copy at {record.path} — pb leaves it alone",
+                severity="warning",
+            )
+            return
+        self.notify(f"fetching {record.name}…")
+        self._update_plugin(record.name)
+
+    @work(thread=True)
+    def _update_plugin(self, name: str) -> None:
+        try:
+            done = plugin_manage.update(self.store, name)
+        except plugin_cli.EXPECTED as exc:
+            self.call_from_thread(self._plugin_failed, "update", exc)
+            return
+        message = (
+            f"{name}: {done.previous_commit[:7]} → {done.record.short_commit}"
+            " — restart pb to load it"
+            if done.changed
+            else f"{name} is already at {done.record.short_commit}"
+        )
+        self.call_from_thread(self._plugin_done, message)
+
+    def action_plugin_toggle(self) -> None:
+        record = self.plugin_record
+        if record is None:
+            return
+        try:
+            updated = plugin_manage.set_enabled(self.store, record.name, not record.enabled)
+        except plugin_cli.EXPECTED as exc:
+            self._plugin_failed("toggle", exc)
+            return
+        state = "will load" if updated.enabled else "will not load"
+        self._plugin_done(f"{record.name} {state} next time pb starts")
+
+    def action_plugin_remove(self) -> None:
+        record = self.plugin_record
+        if record is None:
+            return
+        body = Text()
+        body.append(f"{record.name}\n\n", style="bold")
+        if record.linked:
+            body.append("pb will forget it. Your checkout at\n")
+            body.append(f"{record.path}\n", style="cyan")
+            body.append("stays where it is.\n")
+        else:
+            body.append("This deletes\n")
+            body.append(f"{self.store.dir_for(record.name)}\n", style="yellow")
+
+        def go(ok: bool | None) -> None:
+            if not ok:
+                return
+            try:
+                plugin_manage.remove(self.store, record.name)
+            except plugin_cli.EXPECTED as exc:
+                self._plugin_failed("remove", exc)
+                return
+            self._plugin_done(f"{record.name} removed — it stays loaded until pb restarts")
+
+        self.push_screen(Confirm(f"Remove {record.name}?", body, "Remove"), go)
+
+    def action_plugin_info(self) -> None:
+        record = self.plugin_record
+        if record is None:
+            return
+        try:
+            fields = plugin_manage.describe(self.store, record.name)
+        except plugin_cli.EXPECTED as exc:
+            self._plugin_failed("info", exc)
+            return
+        width = max(len(k) for k in fields)
+        body = "\n".join(f"{k:<{width}}  {v}" for k, v in fields.items())
+        failure = self.plugins.failure_for(record.name)
+        if failure is not None:
+            body += f"\n\nfailed to load — {failure.stage}\n{failure.detail or failure.message}"
+        self.push_screen(Viewer(f"{record.name}", body))
+
+    def _plugin_done(self, message: str) -> None:
+        self.notify(message, timeout=10)
+        self._render_plugins_table()
+        self._render_plugin_detail()
+
+    def _plugin_failed(self, doing: str, exc: Exception) -> None:
+        self.notify(f"{doing}: {exc}", severity="error", timeout=12)
+
     # --- misc ---------------------------------------------------------------
 
     def action_quit(self) -> None:
@@ -1172,7 +1534,7 @@ class PbApp(App[None]):
 
 HELP = """\
 GLOBAL
-  1..7          jump to a tab            ctrl+r   reload from disk
+  1..8          jump to a tab            ctrl+r   reload from disk
   ctrl+g        uncommitted changes      ?        this help
   ctrl+p        command palette          q        quit
 
@@ -1210,7 +1572,15 @@ HISTORY
   o  open the saved output                a  run the same command again
 
 DOCTOR
-  r  re-run the checks
+  r  re-run the checks. A plugin that failed to load is a failed check here,
+     and plugins can add checks of their own.
+
+PLUGINS
+  i  install from GitHub (owner/repo, owner/repo@tag, or any git URL)
+  u  update    e  enable/disable    r  remove    o  everything pb knows
+  Installing and removing take effect the next time pb starts.
+  From a shell: pb plugin list · install · update · link · new · doctor
+  Start pb with --no-plugins to load none of them.
 
 WHILE A RUN IS ON SCREEN
   ctrl+c  cancel      w  toggle wrap     s  save the log
@@ -1246,6 +1616,36 @@ def _short_uptime(text: str) -> str:
     return " ".join(parts[:2]) or text
 
 
+PLUGIN_EMPTY = """\
+No plugins installed.
+
+A plugin is a git repository pb clones and imports at start-up. It can add
+tabs, keys and Doctor checks, react to every run, or replace what a key the
+base app already has does.
+
+  i                        install one from GitHub
+  pb plugin new pb-mine    start writing your own
+  pb plugin link .         develop against your own checkout
+
+docs/PLUGINS.md is the authoring guide.
+"""
+
+# The hooks worth naming on the Plugins tab: what this plugin actually does,
+# rather than the whole optional interface it inherited.
+PLUGIN_HOOKS = (
+    "tabs", "keys", "actions", "commands", "doctor",
+    "reloaded", "before_run", "after_run", "detail", "status_bar",
+)
+
+
+def _plugin_hooks(plugin: plugin_api.Plugin) -> list[str]:
+    return [
+        name
+        for name in PLUGIN_HOOKS
+        if getattr(type(plugin), name, None) is not getattr(plugin_api.Plugin, name, None)
+    ]
+
+
 def _short(text: str, width: int = 40) -> str:
     """First sentence of a header comment, for the table column."""
     first = text.split(". ")[0].strip()
@@ -1259,9 +1659,16 @@ def _wrap(text: str, width: int = 44) -> str:
 
 
 def main() -> int:
+    # `pb plugin …` is a different program: it installs and inspects plugins
+    # and never opens the TUI. Dispatched before argparse sees it, so the
+    # optional repo path stays a positional argument.
+    if len(sys.argv) > 1 and sys.argv[1] == "plugin":
+        return plugin_cli.main(sys.argv[2:])
+
     parser = argparse.ArgumentParser(
         prog="pb",
         description="A terminal console for an Ansible repository.",
+        epilog="pb plugin --help  manages plugins (install, update, link, new).",
     )
     parser.add_argument(
         "path",
@@ -1274,6 +1681,11 @@ def main() -> int:
         metavar="PATH",
         help="the inventory file or directory to read (default: whatever "
         "ansible.cfg says, else the one pb can find in the repo)",
+    )
+    parser.add_argument(
+        "--no-plugins",
+        action="store_true",
+        help="start without loading any plugin (also $PB_NO_PLUGINS)",
     )
     parser.add_argument("--version", action="version", version=f"pb {__version__}")
     args = parser.parse_args()
@@ -1294,5 +1706,6 @@ def main() -> int:
         )
         return 2
 
-    PbApp(root, args.inventory).run()
+    plugins = not (args.no_plugins or os.environ.get("PB_NO_PLUGINS"))
+    PbApp(root, args.inventory, plugins=plugins).run()
     return 0

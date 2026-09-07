@@ -19,6 +19,14 @@ error-prone".
 * **Read-only means read-only.** The Inventory, Status, Roles and Doctor tabs
   must not mutate a host or the repo. Only the Playbooks and Vault tabs write,
   and only through Ansible.
+* **A plugin must not be able to take pb down.** Everything in
+  `src/pb/plugins/` that calls into plugin code catches whatever comes out,
+  reports it, and switches that plugin off for the session. A new hook goes
+  through `PluginHost`, never straight from a widget.
+* **The plugin API is versioned.** `pb.plugins.api` is what third-party code
+  imports. Adding an optional hook is fine; changing or removing one means
+  bumping `API_VERSION`, which makes pb refuse every plugin written for the old
+  number. See [docs/PLUGINS.md](../docs/PLUGINS.md).
 
 ## Getting set up
 
@@ -64,6 +72,15 @@ an SSH key, or an `ansible` binary.
 `Repo.discover` reads `$ANSIBLE_INVENTORY`, so an autouse fixture clears it —
 a developer who has it exported must not get different results from CI. If you
 add anything else that reads the environment, clear it the same way.
+
+Plugin state lives in a config directory, so an autouse fixture points
+`$PB_HOME` at `tmp_path`: a test must never read, still less install into, the
+config of whoever is running it. The `make_plugin`, `linked_plugin` and
+`plugin_git_repo` fixtures build plugins on disk, the last one in a local git
+repository — installing "from GitHub" is cloning a git URL, and a directory is
+such a URL, so the install path is tested end to end without a network.
+`tests/test_plugin_app.py` drives a real headless Textual app, because a tab
+that is not mounted and a key that is not bound are failures no unit test sees.
 
 ## Commit messages
 
