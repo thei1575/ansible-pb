@@ -133,7 +133,8 @@ pb plugin remove NAME                 uninstall
 pb plugin enable NAME
 pb plugin disable NAME
 pb plugin link [PATH] [--name NAME]   develop against a checkout, in place
-pb plugin new NAME [--dir DIR]        write a working plugin to start from
+pb plugin new NAME [--dir DIR] [--owner OWNER]
+                                      write a working plugin to start from
 pb plugin info NAME                   everything pb knows about one
 pb plugin doctor                      load them all and report the failures
 pb plugin path                        print the plugin directory
@@ -144,6 +145,10 @@ pb plugin path                        print the plugin directory
 installing silently. `install`, `remove`, `enable` and `disable` return `1`
 when they could not do what was asked, and `doctor` returns `1` when any
 installed plugin failed to load.
+
+`--owner` only fills in the install line in the README that `new` writes; it
+is not checked against anything. `list` also answers to `ls`, `update` to
+`upgrade`, and `remove` to `uninstall` and `rm`.
 
 `pb plugin --help`, and `--help` after any of those, prints the same.
 [Plugins](../guide/plugins.md) covers using them and
